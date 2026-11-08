@@ -67,16 +67,20 @@ function Icon({ name, className = "size-4" }: { readonly name: keyof typeof ICON
   );
 }
 
-/** An outlined chip, 34px to the eye; `before:` grows the hit area to 44px. */
-const CHIP =
-  "relative inline-flex h-[34px] items-center gap-[7px] rounded-full border border-rule bg-surface px-[13px] text-[14px] text-fg transition-colors duration-150 before:absolute before:inset-x-0 before:-inset-y-[5px] hover:border-fg-muted";
+/**
+ * An index label stuck to the card (round 29: no pills on paper). The link is
+ * 44px tall and unclipped, so its hit area and focus ring are whole; the label
+ * inside it, 36px to the eye with a dog-eared corner, is `.card-label` in
+ * globals.css.
+ */
+const CHIP = "group/label relative inline-flex min-h-11 items-center text-fg";
 
 function Chip({ icon, children }: { readonly icon: keyof typeof ICON; readonly children: ReactNode }) {
   return (
-    <>
+    <span className="card-label">
       <Icon name={icon} className="size-3.5" />
       {children}
-    </>
+    </span>
   );
 }
 
@@ -154,7 +158,7 @@ export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: stri
                   value={profile.email}
                   label="Copy email address"
                   variant="compact"
-                  className="shrink-0 rounded-full"
+                  className="copy-stamp shrink-0"
                 />
               </li>
               {github ? (
@@ -177,7 +181,7 @@ export default function BusinessCard({ bookingUrl }: { readonly bookingUrl: stri
               ) : null}
             </ul>
 
-            <ul role="list" className="mt-auto flex flex-wrap gap-2 pt-6">
+            <ul role="list" className="mt-auto flex flex-wrap gap-x-3 gap-y-2 pt-6">
               {/* A link to the PDF that, from 640px with JavaScript, opens it
                   in a dialog on this page (round 23). */}
               <li>

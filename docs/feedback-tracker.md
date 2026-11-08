@@ -2431,3 +2431,25 @@ Thien: "add SEO + no secret in the page + optimize user/reader experience".
 - **The 404.** It was Next's default: it sent both `noindex` and `index, follow` and had a canonical pointing at the home page. Now it is `not-found.tsx` in my voice ("Nothing hangs here."), with an empty tag taped to the page, the four sections as links and the way back. It is noindex with no canonical, and axe-clean in both themes at 1440 and 390.
 - **Headers.** No more `X-Powered-By`. Pages send frame-ancestors `'self'` (plus `X-Frame-Options`), nosniff, `strict-origin-when-cross-origin`, and a permissions policy that turns off camera, microphone, location, payment and USB. There is no script CSP, on purpose: the theme script is inline. Vercel adds HSTS.
 - **Tests.** `e2e/seo.spec.ts`.
+
+## Round 29: the furniture that is left (2026-11-07)
+
+Thien asked for a pass that makes the site less boxy and more hand-made. The audit (`design/round-29-craft/audit.md`) found the objects done and six places still built from stock web UI. Boards first (`design/round-29-craft/v1`); Thien replied "Build all six", so the recommended option on each open decision was taken.
+
+- **The ticket.** Every `--control` is a printed ticket (`Ticket.tsx`): punched notches (a mask on the face), a perforation, a stub with its glyph (→ for "See what I've built" and the 404, ▸ for "Watch it grow", an envelope for "Send the postcard"). The `<a>`/`<button>` is the unmasked holder, so the focus ring is whole. The hero's quiet action draws the nav's swash on hover and focus (`.swash`). On a phone the ticket is tighter so the two actions still share a row from 375.
+- **The card.** "Résumé" and "Save contact" are index labels with a dog-ear (`.card-label`); the copy control is a square stamp. No pills left on paper.
+- **The Ask.** The pad's glued head, a margin rule, the sides meeting at a fold; "Ask" is an ink stamp; the suggestions are jotted one to a ruled line in the serif hand.
+- **The Diary's page 1.** Work is a time card, Study an index card, a Milestone a swallowtail; each note is kept by tape, a paper clip, photo corners or tape across a corner, by its place (`MOUNTS`). Shadows are drop-shadows on the link so they follow a cut edge.
+- **Paper answers the hand.** Hero chapters and oak tags swing toward level on hover and focus (a springy `rotate`); the Diary's notes rise 3px. Reduced motion: shadow only. The nursery's markers do not lift (they are nailed to their sticks).
+- **The footer** is the bank: an unruled top edge and `bank-grass` along it, on the contrast tone's ground and inks (no new pairing).
+- **Tests changed:** the primary-fill tests look at the ticket's face; the hero's "two actions share a row" test counts rows with 12px tolerance (the ticket is tilted and 4px taller than the link beside it).
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Before (main, 60e295e) | 212.5 KB | 212.5 KB | 34.5 KB | 115.1 KB | 0.0014 | 1844 |
+| After | 212.9 KB | 212.9 KB | 39.2 KB | 115.1 KB | 0.0014 | 1862 |
+
+- Production builds side by side, `pnpm perf` twice each, 0 skipped responses. **JS at load +0.4 KB**: the three stub icons and `Ticket`. **CSS +4.7 KB**: the six treatments. LCP 1164 / 1188 ms on main, 1256 / 1260 ms after (+~80 ms, both under 1.3 s). TBT moved between 33 and 125 ms on both builds.
+- `pnpm verify` passes (1,094 unit tests; the one lint warning, in `DiaryBook.tsx`, predates this). The full e2e run on the dev server: 1,128 passed, 1 failed (the hero's row test, fixed as above). After the fixes the hero, contact, ask, scale, record, clipping, responsive, axe and accessibility suites pass (633).
+- Looked at: `pnpm shots r29-built`, nine widths, both themes.
+- Not changed: the résumé page's own Download/Open actions (a toolbar on the PDF page, not the page's one control).

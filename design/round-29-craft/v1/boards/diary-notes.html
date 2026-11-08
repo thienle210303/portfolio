@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="1440,390" />
+    <title>Diary page 1: paper by kind</title>
+    <link rel="stylesheet" href="craft.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 29, #4. Page 1's five featured entries are five copies of one
+       * taped white note. The shape now says the kind (which the dot already
+       * says, so colour is not the only carrier), and the mount varies by
+       * place, authored like the oak's TAG_LOOKS, never random:
+       *
+       *  1. Work: a time card, corners cut, punched at the head.
+       *  2. Study: an index card, its head ruled twice (accent, then rule).
+       *  3. Milestone: a ribbon's swallowtail cut at the foot.
+       *  4. Mounts: tape, tape across a corner, the paper clip (already drawn),
+       *     photo corners. Widths differ by a few px; tilts already differ.
+       *
+       * The featured five today are four Work and one Milestone, so most of
+       * the variety comes from the mounts. Unchanged: the slice, its strings,
+       * the links, the text, the positions.
+       */
+      main { padding-block: 48px 64px; display: grid; gap: 24px; }
+      .page { position: relative; max-width: 640px; min-height: 620px; padding: 30px; background: var(--surface);
+        background-image: repeating-linear-gradient(180deg, transparent 0 27px, color-mix(in srgb, var(--rule-color) 55%, transparent) 27px 28px);
+        box-shadow: 0 22px 40px rgb(30 40 35 / 0.18); }
+      .slice { position: absolute; left: 40px; top: 150px; width: 210px; height: 210px; border-radius: 50%; }
+      .note { position: absolute; }
+      .kinds { display: flex; gap: 16px; }
+      @media (width < 40rem) {
+        .page { padding: 20px 14px; min-height: 0; display: grid; gap: 30px 14px; grid-template-columns: 1fr 1fr; }
+        .page > header, .page .slice { grid-column: 1 / -1; }
+        .page .slice { position: relative; left: auto; top: auto; justify-self: center; }
+        .note { position: relative; left: auto !important; top: auto !important; width: auto !important; }
+        .note:last-of-type { grid-column: 1 / -1; justify-self: center; width: 60% !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header style="display:grid;gap:8px">
+        <span class="label">Round 29 · board 3 · the Diary, page 1</span>
+        <h1 class="page-title">Five notes, five ways of keeping them.</h1>
+      </header>
+      <div class="page" data-paper>
+        <header style="display:grid;gap:6px">
+          <span class="label">Diary</span>
+          <h2 class="page-title">Pressed, waiting to dry.</h2>
+        </header>
+        <div class="art slice">tree slice (unchanged)</div>
+        <div class="note work m-tape" style="left:330px;top:120px;width:182px;--tilt:-2deg;--tape:-6deg">
+          <span class="pin" style="left:-12px;top:-12px">1</span><div class="sheet">
+          <span class="meta"><span>● Work</span><span>2025</span></span><b>Software Engineer</b><span class="where">DoorDash, Inc.</span>
+        </div></div>
+        <div class="note work m-clip" style="left:400px;top:265px;width:176px;--tilt:1.4deg">
+          <span class="pin" style="left:-12px;top:30px">4</span><div class="sheet">
+          <span class="meta"><span>● Work</span><span>2024</span></span><b>Software Engineer</b><span class="where">Wordification by ScholarsTech LLC</span>
+        </div></div>
+        <div class="note work m-corners" style="left:36px;top:430px;width:170px;--tilt:-1deg"><div class="sheet">
+          <span class="meta"><span>● Work</span><span>2024</span></span><b>Software Engineer Co-op</b><span class="where">Schaeffler Group</span>
+        </div></div>
+        <div class="note milestone m-tape-corner" style="left:226px;top:448px;width:160px;--tilt:1.8deg">
+          <span class="pin" style="left:-12px;top:-12px">3</span><div class="sheet">
+          <span class="meta"><span>◆ Milestone</span><span>2024</span></span><b>Best Design, MentorHub</b><span class="where">CockyHacks, ACM@USC</span>
+        </div></div>
+        <div class="note study m-tape" style="left:410px;top:430px;width:178px;--tilt:-1.6deg;--tape:3deg">
+          <span class="pin" style="left:-12px;top:-12px">2</span><div class="sheet">
+          <span class="meta"><span>■ Study</span><span>shape</span></span><b>An index card</b><span class="where">(not featured today; drawn so the kind has its paper)</span>
+        </div></div>
+      </div>
+    </main>
+  </body>
+</html>

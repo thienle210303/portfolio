@@ -155,7 +155,7 @@ export default function Contact({ emailDeliveryConfigured, askLiveModeConfigured
               lays it out (`@container/ask`, ask-sheet.tsx). */}
           <div
             id="ask"
-            className="@container/ask paper-lift no-print min-w-0 scroll-mt-20 overflow-hidden rounded-[4px] bg-surface [grid-area:ask] max-lg:-mt-2 lg:mt-1 xl:w-[min(100%,50rem)] xl:justify-self-end xl:[grid-area:tet]"
+            className="ask-pad @container/ask paper-lift no-print min-w-0 scroll-mt-20 overflow-hidden rounded-[4px] bg-surface [grid-area:ask] max-lg:-mt-2 lg:mt-1 xl:w-[min(100%,50rem)] xl:justify-self-end xl:[grid-area:tet]"
           >
             {/* The idle notepad is drawn here, on the server, and holds the
                 chat's place until its chunk lands (see `AskPlaceholder`). */}

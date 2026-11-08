@@ -521,7 +521,10 @@ test.describe("hero", () => {
       await page.setViewportSize({ width, height: 800 });
       await open(page);
       const tops = await page.locator('#about [data-hero-step="meta-actions"] > a').evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
-      expect(new Set(tops).size, `${width}: ${tops.join(", ")}`).toBe(rows);
+      // Rows, not exact tops: the ticket is tilted and 4px taller than the
+      // link beside it (round 29), so their tops differ by a few px on one row.
+      const rowCount = [...tops].sort((a, b) => a - b).filter((top, i, all) => i === 0 || top - all[i - 1]! > 12).length;
+      expect(rowCount, `${width}: ${tops.join(", ")}`).toBe(rows);
     }
   });
 

@@ -3577,13 +3577,6 @@ html:not([data-motion]) [data-ask-shell] {
     background: currentColor;
   }
 
-  /* The "or try" tags hang a little askew, like the slips they become. */
-  .ask-try > li:nth-child(odd) .ask-tag {
-    rotate: -1.2deg;
-  }
-  .ask-try > li:nth-child(even) .ask-tag {
-    rotate: 0.9deg;
-  }
 }
 
 @media screen and (prefers-reduced-motion: no-preference) {
@@ -3630,16 +3623,6 @@ html:not([data-motion]) [data-ask-shell] {
   }
   .ask-ink-dots > span:nth-child(3) {
     animation-delay: 0.4s;
-  }
-  .ask-tag {
-    transition:
-      color 200ms,
-      rotate 200ms var(--ease-ink),
-      translate 200ms var(--ease-ink);
-  }
-  .ask-try button:hover .ask-tag {
-    rotate: 0deg;
-    translate: 0 -1px;
   }
 
   @keyframes ask-hand-over {
@@ -3953,11 +3936,10 @@ html:not([data-motion]) [data-ask-shell] {
     }
   }
 
-  /* An "or try" question, and the header's TL (round 22): a small paper tag,
-     cut to a point on the left with a punched hole. Only on a span inside
-     the control, never on the control: a clipped element would clip its own
-     focus ring. */
-  .ask-tag,
+  /* The header's TL (round 22): a small paper tag, cut to a point on the
+     left with a punched hole. Only on a span inside the control, never on
+     the control: a clipped element would clip its own focus ring. (The Ask's
+     "or try" questions wore it too until round 29.) */
   .brand-tag {
     background:
       radial-gradient(circle at 11px 50%, var(--ground) 2.5px, var(--twine) 2.6px 3.6px, transparent 3.7px),
@@ -5183,5 +5165,381 @@ body:has(.resume-dialog[open]) {
       scale: 1;
       filter: blur(0);
     }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Round 29: the furniture that is left (design/round-29-craft/v1).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── The ticket: the one primary control (Ticket.tsx) ──────────────────────
+ * The holder (`.ticket`) is the <a>/<button>: unmasked, so it carries the
+ * focus ring and the 1px press. The face carries the fill and two punched
+ * notches at mid-height (a mask), then a perforation and the stub. Hover
+ * starts to tear the stub off and leans its glyph the way it goes. */
+.ticket {
+  rotate: -0.6deg;
+}
+.ticket:focus-visible {
+  outline-offset: 4px;
+}
+.ticket-face {
+  --notch: 6px;
+  min-height: 3rem;
+  padding-left: 1.375rem;
+  line-height: 1;
+  box-shadow:
+    inset 0 -2px 0 rgb(0 0 0 / 0.22),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at 0 50%, #0000 97%, #000) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 50%, #0000 97%, #000) right / 51% 100% no-repeat;
+}
+.ticket:active .ticket-face {
+  box-shadow: inset 0 2px 0 rgb(0 0 0 / 0.22);
+}
+.ticket-stub {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  width: 2.75rem;
+  margin-left: 1.125rem;
+  transform-origin: 0 0;
+  transition: rotate var(--dur-reveal) var(--ease-ink);
+}
+.ticket-stub::before {
+  content: "";
+  position: absolute;
+  inset: 7px auto 7px 0;
+  border-left: 1.5px dashed color-mix(in srgb, currentColor 45%, transparent);
+}
+.ticket-stub svg {
+  transition: translate var(--dur-reveal) var(--ease-ink);
+}
+@media (hover: hover) {
+  .ticket:hover .ticket-stub {
+    rotate: 4deg;
+  }
+  .ticket:hover .ticket-stub svg {
+    translate: 3px 0;
+  }
+}
+.ticket:focus-visible .ticket-stub svg {
+  translate: 3px 0;
+}
+.ticket:disabled .ticket-stub {
+  rotate: 0deg;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticket-stub,
+  .ticket-stub svg {
+    transition: none;
+  }
+}
+
+/* ── The quiet action beside the ticket: the nav's own ink swash ───────────
+ * Drawn on under the words on hover and focus, from the left, in --accent,
+ * in place of the plain underline. The words keep --fg. */
+.swash {
+  text-decoration-line: none !important;
+}
+.swash::after {
+  content: "";
+  position: absolute;
+  inset-inline: -0.15rem;
+  bottom: 0.3rem;
+  height: 0.5rem;
+  background-color: var(--accent);
+  mask: url(/scenery/nav-swash.svg) no-repeat left top / 100% 100%;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--dur-draw) var(--ease-ink);
+  pointer-events: none;
+}
+.swash:focus-visible::after {
+  clip-path: inset(0 0 0 0);
+}
+@media (hover: hover) {
+  .swash:hover {
+    color: var(--fg);
+  }
+  .swash:hover::after {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .swash::after {
+    transition: none;
+  }
+}
+
+/* ── The card's actions: index labels, not pills (BusinessCard.tsx) ─────────
+ * A label stuck to the card: twine-tinted paper, a twine edge on the left, a
+ * dog-eared corner. It is stuck down, so it does not lift; hover darkens it a
+ * step. The two labels sit at slightly different angles. */
+.card-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  padding: 0 1rem 0 0.75rem;
+  background: color-mix(in srgb, var(--twine) 16%, var(--surface));
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--step--1);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+  box-shadow: inset 3px 0 0 var(--twine);
+  rotate: -1.2deg;
+  transition: background-color var(--dur-quick);
+}
+li + li > * > .card-label {
+  rotate: 0.9deg;
+}
+.card-label::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(225deg, transparent 50%, color-mix(in srgb, var(--twine) 45%, var(--surface)) 50%);
+}
+@media (hover: hover) {
+  .group\/label:hover > .card-label {
+    background: color-mix(in srgb, var(--twine) 26%, var(--surface));
+  }
+}
+
+/* The copy control: a small square rubber stamp, set down a little crooked. */
+.copy-stamp {
+  border-radius: 2px;
+  rotate: -3deg;
+}
+
+/* ── The Ask: a sheet off my notepad (Contact.tsx, ask-sheet.tsx) ─────────
+ * The pad's glued head along the top, the sheet torn off along it, and a
+ * margin rule down the left (--rule, never red: one mark per screen). The two
+ * sides meet at a fold, a shadow and a light line, not a dashed rule. The
+ * questions are jotted one to a ruled line with a dash before each; hover and
+ * focus underline the words in wavy ink. */
+.ask-pad {
+  position: relative;
+  padding-top: 0.875rem;
+  background-image: linear-gradient(90deg, transparent 0.6875rem, var(--rule-color) 0.6875rem 0.75rem, transparent 0.75rem);
+}
+.ask-pad::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 0.875rem;
+  background: color-mix(in srgb, var(--twine) 55%, var(--surface));
+  mask: radial-gradient(circle 3px at 6px 100%, #0000 96%, #000) 0 0 / 12px 100%;
+  pointer-events: none;
+}
+.ask-fold-top {
+  background-image: linear-gradient(180deg, rgb(0 0 0 / 0.07) 0 1px, color-mix(in srgb, var(--surface) 55%, white) 1px 2px, transparent 2px);
+}
+@container ask (min-width: 44rem) {
+  .ask-fold-top {
+    background-image: none;
+  }
+  .ask-fold-side {
+    background-image: linear-gradient(90deg, transparent calc(100% - 2px), rgb(0 0 0 / 0.07) calc(100% - 2px) calc(100% - 1px), color-mix(in srgb, var(--surface) 55%, white) calc(100% - 1px));
+  }
+}
+.ask-stamp {
+  rotate: -3deg;
+}
+.ask-try > li {
+  border-bottom: 1px solid color-mix(in srgb, var(--rule-color) 70%, transparent);
+}
+.ask-jot::before {
+  content: "– ";
+  color: var(--fg-muted);
+  font-style: normal;
+}
+.ask-jot {
+  text-decoration: underline wavy transparent 1px;
+  text-underline-offset: 5px;
+  transition: text-decoration-color var(--dur-quick);
+}
+.ask-try button:focus-visible .ask-jot {
+  text-decoration-color: color-mix(in srgb, var(--accent) 75%, transparent);
+}
+@media (hover: hover) {
+  .ask-try button:hover .ask-jot {
+    text-decoration-color: color-mix(in srgb, var(--accent) 75%, transparent);
+  }
+}
+
+/* ── The Diary's page 1: paper by kind, kept by place (RecordPressed.tsx) ──
+ * The note's shadow is a drop-shadow on its link, so it follows a cut edge
+ * (and the tape and the clip cast one too). Every mount stays inside the
+ * note's width, so a card never scrolls sideways (record.spec.ts). */
+.record-card > a {
+  filter: drop-shadow(0 1px 0 rgb(0 0 0 / 0.05)) drop-shadow(0 10px 12px rgb(30 40 35 / 0.16));
+}
+:root[data-theme="night"] .record-card > a {
+  filter: drop-shadow(0 1px 0 rgb(0 0 0 / 0.25)) drop-shadow(0 12px 14px rgb(0 0 0 / 0.4));
+}
+/* Work: a time card, its corners cut, punched at the head. */
+.record-note[data-kind="work"] {
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%, 0 9px);
+  padding-top: 1.5rem;
+  background-image: radial-gradient(circle 3.5px at 50% 11px, var(--hole, var(--ground)) 95%, transparent);
+}
+/* Study: an index card, its head ruled twice. */
+.record-note[data-kind="learning"] {
+  background-image: linear-gradient(
+    180deg,
+    transparent 2.1rem,
+    var(--accent) 2.1rem calc(2.1rem + 1px),
+    transparent calc(2.1rem + 1px) calc(2.1rem + 3px),
+    var(--rule-color) calc(2.1rem + 3px) calc(2.1rem + 4px),
+    transparent calc(2.1rem + 4px)
+  );
+}
+/* Milestone: a ribbon's swallowtail at the foot. */
+.record-note[data-kind="milestone"] {
+  padding-bottom: 1.75rem;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 0.875rem), 0 100%);
+}
+.record-card .record-tape-corner {
+  z-index: 1;
+  top: -0.25rem;
+  right: 0.25rem;
+  left: auto;
+  width: 3.4rem;
+  height: 1rem;
+  margin: 0;
+  transform: rotate(40deg);
+}
+.record-clip {
+  position: absolute;
+  z-index: 1;
+  top: -1.4rem;
+  left: 1.1rem;
+  width: 0.9rem;
+  height: 2.4rem;
+  background-size: contain;
+  pointer-events: none;
+}
+.record-corners {
+  position: absolute;
+  z-index: 1;
+  inset: -3px 0;
+  pointer-events: none;
+  --c: color-mix(in srgb, var(--fg) 70%, var(--surface));
+  background:
+    linear-gradient(135deg, var(--c) 11px, transparent 11px),
+    linear-gradient(225deg, var(--c) 11px, transparent 11px),
+    linear-gradient(45deg, var(--c) 11px, transparent 11px),
+    linear-gradient(315deg, var(--c) 11px, transparent 11px);
+}
+
+/* ── Paper answers the hand ────────────────────────────────────────────────
+ * Paper that is a link or a button comes up when the hand reaches for it:
+ * on hover (where there is hover) and on keyboard focus. Hanging paper swings
+ * toward level about the point it hangs from, overshooting once (the springy
+ * curve), and the string goes with it; lying paper (the Diary's notes) lifts
+ * 3px and levels. A deeper shadow says it is off the page. Under reduced
+ * motion nothing turns or moves; only the shadow deepens. Translate and rotate
+ * only: nothing reflows. (The nursery's markers stay put: they are nailed to
+ * their sticks, and only one of them is a link.) */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-yard li,
+  [data-hanging-tags] > ul > li > div,
+  .record-card {
+    transition:
+      rotate 520ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      translate var(--dur-reveal) var(--ease-ink);
+  }
+  .hero-yard li:has(:focus-visible),
+  [data-hanging-tags] > ul > li:has(:focus-visible) > div {
+    rotate: calc(var(--tilt, 0deg) * 0.3);
+  }
+  .record-card:has(:focus-visible) {
+    rotate: calc(var(--rot) * 0.4);
+    translate: 0 -3px;
+  }
+  @media (hover: hover) {
+    .hero-yard li:hover,
+    [data-hanging-tags] > ul > li:hover > div {
+      rotate: calc(var(--tilt, 0deg) * 0.3);
+    }
+    .record-card:hover {
+      rotate: calc(var(--rot) * 0.4);
+      translate: 0 -3px;
+    }
+  }
+}
+[data-hanging-tags] > ul > li > div,
+.record-card > a {
+  transition: filter var(--dur-reveal) var(--ease-ink);
+}
+[data-hanging-tags] > ul > li:has(:focus-visible) > div,
+.record-card:has(:focus-visible) > a {
+  filter: drop-shadow(0 2px 2px rgb(30 40 35 / 0.2)) drop-shadow(0 16px 14px rgb(30 40 35 / 0.24));
+}
+@media (hover: hover) {
+  [data-hanging-tags] > ul > li:hover > div,
+  .record-card:hover > a {
+    filter: drop-shadow(0 2px 2px rgb(30 40 35 / 0.2)) drop-shadow(0 16px 14px rgb(30 40 35 / 0.24));
+  }
+}
+
+/* ── The page ends on the ground (SiteFooter.tsx) ──────────────────────────
+ * The footer is the bank the whole page stands on: its top edge is not ruled
+ * straight, and the hero's own bank grass (`bank-grass`) stands along it in
+ * --scene-moss. The text and its colours are the contrast tone's, unchanged. */
+.ground-foot {
+  position: relative;
+}
+.ground-foot::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(100% + 2px);
+  height: 30px;
+  background-color: var(--scene-moss);
+  mask: url(/scenery/bank-grass.svg) repeat-x left bottom / 420px 30px;
+  pointer-events: none;
+}
+.ground-foot::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: -5px;
+  height: 6px;
+  background-color: var(--ground);
+  mask: radial-gradient(ellipse 18px 5px at 50% 100%, #000 97%, #0000) repeat-x 0 0 / 31px 6px;
+  pointer-events: none;
+}
+@media print {
+  .ground-foot::before,
+  .ground-foot::after {
+    display: none;
+  }
+}
+/* The corner tape needs headroom: the note's year sits under that corner. */
+.record-card > a[data-mount="tape-corner"] > .record-note {
+  padding-top: 1.6rem;
+}
+/* On a phone the ticket is a little tighter, so the hero's two actions still
+   share a row from 375 (hero.spec.ts). */
+@media (width < 40rem) {
+  .ticket-face {
+    padding-left: 0.875rem;
+  }
+  .ticket-stub {
+    width: 1.75rem;
+    margin-left: 0.375rem;
+  }
+  .ticket-stub::before {
+    inset-block: 9px;
   }
 }

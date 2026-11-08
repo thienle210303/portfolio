@@ -1,6 +1,7 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { ExternalLink } from "@/components/ui/ExternalLink";
+import { TICKET_CLASSES, TicketFace, type TicketStub } from "@/components/ui/Ticket";
 
 type ButtonVariant = "primary" | "secondary" | "quiet";
 type ButtonSize = "md" | "sm";
@@ -10,6 +11,8 @@ interface ButtonSharedProps {
   readonly variant?: ButtonVariant;
   readonly size?: ButtonSize;
   readonly className?: string;
+  /** `primary` only: the glyph on the ticket's stub (round 29). */
+  readonly stub?: TicketStub;
   /**
    * Arbitrary `data-*` attributes pass straight through to the rendered
    * `<a>`/`<button>` (or `<ExternalLink>`'s own `<a>`) unchanged — for DOM
@@ -86,21 +89,11 @@ const QUIET_SIZE_CLASSES: Record<ButtonSize, string> = {
 // so every variant stays legible in either theme and in any of the three
 // section tones, with no per-tone branch here.
 //
-// `primary` fills with --control (moss-deep), not --accent. It is the one place
-// the fill carries a whole element, and what makes the single most important
-// control on each screen the heaviest thing on it. --fg-inverse is its partner
-// on purpose: it is the label that reads on a --control fill in every theme and
-// tone. Hover shifts the fill to --accent; the label does not change.
-// `primary` additionally carries the etched inner keyline (Workstream 3,
-// P3) — the one rich hover this site allows itself, reserved for the single
-// primary control per screen. `after:inset-[3px]` sits inside the fill, not
-// on its edge, so it reads as a mark pressed into the surface rather than a
-// second border racing the element's own; invisible at rest, never past 40%
-// on hover. LeadForm's Send button carries the identical recipe by hand,
-// since it does not render through this component.
+// `primary` is not here: since round 29 it is a ticket (Ticket.tsx), whose
+// face fills with --control (moss-deep), the one place a fill carries a whole
+// element, labelled in --fg-inverse, shifting to --accent on hover.
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary:
-    "border-[color:var(--control)] bg-[color:var(--control)] text-[color:var(--fg-inverse)] after:pointer-events-none after:absolute after:inset-[3px] after:border after:border-current after:opacity-0 after:transition-opacity after:duration-150 hover:border-[color:var(--accent)] hover:bg-[color:var(--accent)] hover:after:opacity-40",
+  primary: "",
   secondary:
     "border-[color:var(--rule-color)] bg-transparent text-[color:var(--fg)] hover:border-[color:var(--accent)] hover:text-[color:var(--accent)]",
   quiet:
@@ -112,15 +105,18 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
  * new-tab behaviour and notice are never duplicated. All variants/sizes
  * meet the 44px minimum tap target. */
 export function Button(props: ButtonProps) {
-  const { children, variant = "primary", size = "md", className, ...rest } = props;
+  const { children: label, variant = "primary", size = "md", stub, className, ...rest } = props;
+  const isTicket = variant === "primary";
   const sizeClasses = variant === "quiet" ? QUIET_SIZE_CLASSES[size] : SIZE_CLASSES[size];
-  const classes = cn(
-    BASE_CLASSES,
-    sizeClasses,
-    VARIANT_CLASSES[variant],
-    variant !== "quiet" && PRESS_CLASSES,
-    className,
-  );
+  /*
+   * Round 29: `primary` is a printed ticket. The pressable element is the
+   * unmasked holder (it carries the focus ring and the press); the fill, the
+   * notches and the stub are `TicketFace` inside it. See Ticket.tsx.
+   */
+  const classes = isTicket
+    ? cn(TICKET_CLASSES, "font-sans font-semibold disabled:pointer-events-none disabled:opacity-50", size === "sm" ? "text-[length:var(--step--1)]" : "text-[length:var(--step-0)]", className)
+    : cn(BASE_CLASSES, sizeClasses, VARIANT_CLASSES[variant], variant !== "quiet" && PRESS_CLASSES, className);
+  const children = isTicket ? <TicketFace stub={stub}>{label}</TicketFace> : label;
 
   if (rest.href !== undefined) {
     const { href, ...anchorRest } = rest;

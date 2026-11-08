@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="1440,390" />
+    <title>The Ask: a sheet off my notepad</title>
+    <link rel="stylesheet" href="craft.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 29, #3. Round 28 moved the Ask onto the desk; this makes it the
+       * notepad it was called. Today: a white rectangle, an outlined "Ask"
+       * button, circle bullets, a dashed column rule.
+       *
+       *  1. The pad's glued head along the top, the sheet torn off along it.
+       *  2. Ruled lines and a margin rule (--rule, not red: one mark per screen).
+       *  3. The suggestions are things I jotted for you: handwriting (the aside
+       *     role), one to a ruled line, a dash before each. A question asked
+       *     still leaves the list (round 25).
+       *  4. "Ask" is an ink stamp at the end of the question's line, not an
+       *     outlined box. Still a <button>, 44px with its hit area.
+       *  5. The two columns meet at a fold, not a dashed rule.
+       *
+       * Unchanged: the clippings, the ticket stubs, the typed sheet, the idle
+       * height and the window it opens to, role="log", every behaviour.
+       */
+      main { padding-block: 48px 64px; display: grid; gap: 24px; }
+      .pad { display: grid; grid-template-columns: 1.15fr 2px 1fr; gap: 0 28px; max-width: 800px; }
+      .pad .a, .pad .b { display: grid; gap: 14px; align-content: start; }
+      .ticketq { justify-self: end; display: flex; background: color-mix(in srgb, var(--fg) 6%, var(--surface)); box-shadow: var(--shadow-pinned); rotate: 1deg; }
+      .ticketq > * { padding: 8px 12px; }
+      .ticketq > :first-child { border-right: 1.5px dashed var(--rule-color); }
+      @media (width < 40rem) {
+        .pad { grid-template-columns: 1fr; padding: 40px 16px 22px 48px; }
+        .pad .fold { height: 2px; width: auto; margin-block: 14px; background: linear-gradient(180deg, rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.5)); }
+        .pad { background-image: linear-gradient(90deg, transparent 35px, var(--rule-color) 35px 36px, transparent 36px), repeating-linear-gradient(180deg, transparent 0 31px, color-mix(in srgb, var(--rule-color) 70%, transparent) 31px 32px); }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header style="display:grid;gap:8px">
+        <span class="label">Round 29 · board 2 · the Ask</span>
+        <h1 class="page-title">A sheet off my notepad, idle.</h1>
+      </header>
+      <div class="pad" id="ask">
+        <span class="pin" style="left:-10px;top:-12px">1</span>
+        <span class="pin" style="left:22px;top:120px">2</span>
+        <div class="a">
+          <div><b class="heading" style="font-size:var(--step-1)">Ask me</b> <span class="aside" style="font-size:15px">I answer from what I've written here.</span></div>
+          <div class="ticketq"><span class="data muted">No.<br />--</span><span><span class="label">You asked</span><br /><span class="aside" style="font-size:16px">No question asked yet.</span></span></div>
+          <span class="data muted">I said</span>
+          <p class="aside" style="color:var(--fg);line-height:32px">Pick a question or ask your own. Every answer is something I've written here, as written or a few lines of it joined into one, with where it came from. No model, nothing generated. If I haven't written it down, I'll say so.</p>
+          <span class="label">How this answers ⌄</span>
+        </div>
+        <span class="fold"><span class="pin" style="position:relative;left:-11px;top:40%">5</span></span>
+        <div class="b">
+          <span class="data muted">Your question</span>
+          <div class="line"><span class="muted" style="flex:1;padding-bottom:8px">Ask about my work</span><span class="ink-stamp">Ask</span><span class="pin" style="position:relative;left:-4px;top:-28px">4</span></div>
+          <span class="data muted" style="margin-top:8px">or try <span class="pin" style="position:relative;display:inline-grid;left:6px;top:6px">3</span></span>
+          <div>
+            <span class="jot">What do you do at DoorDash?</span>
+            <span class="jot is-hover">Are you from Việt Nam?</span>
+            <span class="jot">What have you measured?</span>
+            <span class="jot">What are your cats called?</span>
+          </div>
+          <span class="data muted" style="font-size:12px">2nd line: hover / focus, a wavy ink underline</span>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="1440,390" />
+    <title>Paper answers the hand</title>
+    <link rel="stylesheet" href="craft.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 29, #5. Every piece of paper that is a link or a button answers
+       * when the hand reaches for it: on hover (where there is hover) and on
+       * focus-visible, it is picked up. 4px up, its tilt eased 60% toward
+       * level, the lift shadow (--shadow-lift). 200ms, --ease-ink.
+       *
+       *  1. Hanging papers (hero chapters, oak tags) lift from where they hang:
+       *     the string and the line do not move; the paper swings once about
+       *     its hole and settles (one 500ms swing, then still).
+       *  2. Lying papers (Diary notes, seedling markers) lift straight up.
+       *  3. Press sets it back down (0px, the pinned shadow) before the flip,
+       *     the turn or the jump happens.
+       *
+       * Reduced motion: no movement and no swing; the shadow alone deepens.
+       * Touch: no hover, so a tap goes straight to what it did before.
+       * Nothing reflows: translate and rotate only.
+       */
+      main { padding-block: 48px 64px; display: grid; gap: 28px; }
+      .pairs { display: grid; gap: 34px; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 760px; }
+      .pairs > div { display: grid; gap: 10px; justify-items: center; position: relative; }
+      .cap { font: 400 12px var(--font-mono); color: var(--fg-muted); text-align: center; }
+      .hang { position: relative; padding-top: 28px; }
+      .hang::before { content: ""; position: absolute; top: 0; left: 50%; width: 1.5px; height: 32px; background: var(--twine); }
+      .ch { width: 160px; height: 170px; padding: 14px; display: grid; gap: 6px; align-content: start; background: color-mix(in srgb, var(--twine) 22%, var(--surface)); }
+      .tagp { position: relative; width: 170px; padding: 40px 14px 16px; background: color-mix(in srgb, var(--twine) 26%, var(--surface)); clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 20px, 100% 100%, 0 100%, 0 20px); }
+      .row4 { display: grid; gap: 34px; grid-template-columns: repeat(4, max-content); justify-content: start; }
+      @media (width < 40rem) {
+        .row4 { grid-template-columns: repeat(2, max-content); }
+        .ch { width: 140px; }
+        .tagp { width: 140px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header style="display:grid;gap:8px">
+        <span class="label">Round 29 · board 4 · hover and focus on paper</span>
+        <h1 class="page-title">Reach for it and it comes up.</h1>
+      </header>
+
+      <div class="row4">
+        <div style="display:grid;gap:10px;justify-items:center;position:relative">
+          <span class="pin" style="left:-12px;top:-4px">1</span>
+          <div class="hang"><div class="ch liftable" style="--tilt:-3deg;rotate:-3deg;box-shadow:var(--shadow-pinned)"><span class="data">2003</span><b class="heading">Kiên Giang</b><span class="art" style="height:70px">rice</span></div></div>
+          <span class="cap">hero chapter, rest</span>
+        </div>
+        <div style="display:grid;gap:10px;justify-items:center">
+          <div class="hang"><div class="ch liftable is-lifted" style="--tilt:-3deg"><span class="data">2003</span><b class="heading">Kiên Giang</b><span class="art" style="height:70px">rice</span></div></div>
+          <span class="cap">hover / focus: lifted, swings once</span>
+        </div>
+        <div style="display:grid;gap:10px;justify-items:center">
+          <div class="hang"><div class="tagp liftable" style="--tilt:2deg;rotate:2deg"><b class="display" style="font-size:34px">96%</b><br /><b>Schaeffler</b><br /><span class="muted" style="font-size:14px">Throughput, custom Java</span></div></div>
+          <span class="cap">oak tag, rest</span>
+        </div>
+        <div style="display:grid;gap:10px;justify-items:center">
+          <div class="hang"><div class="tagp liftable is-lifted" style="--tilt:2deg"><b class="display" style="font-size:34px">96%</b><br /><b>Schaeffler</b><br /><span class="muted" style="font-size:14px">Throughput, custom Java</span></div></div>
+          <span class="cap">lifted (a clipped tag takes a drop-shadow)</span>
+        </div>
+      </div>
+
+      <div class="row4">
+        <div style="display:grid;gap:10px;justify-items:center;position:relative">
+          <span class="pin" style="left:-12px;top:-12px">2</span>
+          <div class="note work liftable" style="width:170px;--tilt:-2deg;rotate:-2deg"><div class="sheet"><span class="meta"><span>● Work</span><span>2025</span></span><b>Software Engineer</b><span class="where">DoorDash, Inc.</span></div></div>
+          <span class="cap">Diary note, rest</span>
+        </div>
+        <div style="display:grid;gap:10px;justify-items:center">
+          <div class="note work liftable is-lifted" style="width:170px;--tilt:-2deg"><div class="sheet"><span class="meta"><span>● Work</span><span>2025</span></span><b>Software Engineer</b><span class="where">DoorDash, Inc.</span></div></div>
+          <span class="cap">lifted</span>
+        </div>
+        <div style="display:grid;gap:10px;justify-items:center;position:relative">
+          <span class="pin" style="left:-12px;top:-12px">3</span>
+          <div class="note liftable" style="width:170px;--tilt:-2deg;rotate:-2deg;translate:0 1px;filter:drop-shadow(0 1px 1px rgb(30 40 35/.25))"><div class="sheet"><span class="meta"><span>● Work</span><span>2025</span></span><b>Software Engineer</b><span class="where">DoorDash, Inc.</span></div></div>
+          <span class="cap">pressed: set back down</span>
+        </div>
+        <div style="display:grid;gap:10px;justify-items:center">
+          <div class="note liftable" style="width:170px;--tilt:-2deg;rotate:-2deg;filter:drop-shadow(0 2px 2px rgb(30 40 35/.2)) drop-shadow(0 16px 14px rgb(30 40 35/.24))"><div class="sheet"><span class="meta"><span>● Work</span><span>2025</span></span><b>Software Engineer</b><span class="where">DoorDash, Inc.</span></div></div>
+          <span class="cap">reduced motion: shadow only</span>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
