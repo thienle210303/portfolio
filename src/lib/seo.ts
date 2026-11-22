@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { profile } from "@/content/portfolio";
+import { buildTickets, type ResolvedHighlight } from "@/lib/highlights";
 
 /**
  * Whether search engines may index this deployment. Production does; a Vercel
@@ -20,14 +21,33 @@ export const SITE_TITLE = `${profile.name} — ${profile.title}`;
  */
 export const SITE_DESCRIPTION = profile.positioning;
 
+/**
+ * The oak's first ticket (DoorDash), which the share card hangs on its line:
+ * the scraper's runtime above the perforation, the agent workflow on the stub.
+ * The card is drawn for exactly two halves, so anything else fails the build.
+ */
+export const SHARE_TICKET = (() => {
+  const [ticket] = buildTickets();
+  const [run, agent] = ticket?.halves ?? [];
+  if (!run || !agent || ticket.halves.length !== 2)
+    throw new Error("the share card hangs the oak's first ticket, which must have two halves");
+  return { name: ticket.name, run, agent };
+})();
+
+/** "17h → 3m" read aloud, as the oak's tags say it to a screen reader. */
+const spoken = (h: ResolvedHighlight, withMeasure = false) =>
+  [h.value.replace(" → ", " to "), withMeasure ? h.measure : undefined].filter(Boolean).join(" ") +
+  `, ${h.label.toLowerCase()}`;
+
 /** The root's share image (`src/app/opengraph-image.tsx`), named explicitly for
  *  routes that set their own `openGraph`: a page's `openGraph` replaces the
- *  layout's whole, so without this it would share with no picture. */
+ *  layout's whole, so without this it would share with no picture. Its `alt`
+ *  says what the card shows. */
 export const SHARE_IMAGE = {
   url: "/opengraph-image",
   width: 1200,
   height: 630,
-  alt: SITE_TITLE,
+  alt: `${SITE_TITLE}: “${profile.headline}” Beside it a ${SHARE_TICKET.name} ticket hangs on a line: ${spoken(SHARE_TICKET.run)}; ${spoken(SHARE_TICKET.agent, true)}.`,
 } as const;
 
 /** The parts of `openGraph` every page shares; a page adds its url and title. */

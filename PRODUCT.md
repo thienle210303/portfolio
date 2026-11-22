@@ -22,9 +22,10 @@ description: [README.md](README.md). Every fact comes from
 
 ## Users
 
-Not yet written down. Thien to confirm who visits and what they need to
-decide; until then, design for someone deciding whether to reach out, on a
-phone or a laptop, in either theme.
+Hiring managers, recruiters and engineers looking at software engineering and
+AI agent work (Thien, 2026-11-21). They are deciding whether to reach out, on a
+phone or a laptop, in either theme, and many meet the site first as a link
+preview or from GitHub.
 
 ## Principles
 
