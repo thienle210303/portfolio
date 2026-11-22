@@ -1,11 +1,14 @@
 import { ImageResponse } from "next/og";
 import { profile } from "@/content/portfolio";
+import { font } from "@/lib/share-image";
 
 export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
 
-// The TL monogram, off-white on near-black — same two tokens as the rest
-// of the site's dark chrome, at favicon scale.
+const extraBold = await font("BricolageGrotesque96pt-ExtraBold.ttf");
+
+// The header's TL tag as paper with an ink edge (round 31), so it reads on a
+// light tab bar and a dark one. Literals: an image has no aliases.
 export default function Icon() {
   return new ImageResponse(
     (
@@ -16,16 +19,19 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#080808",
-          color: "#F3F1EB",
-          fontSize: 18,
-          fontWeight: 700,
-          letterSpacing: "-0.02em",
+          backgroundColor: "#fbfbf8", // --color-paper
+          border: "1.5px solid #1d2321", // --color-ink
+          borderRadius: 7,
+          color: "#1d2321",
+          fontFamily: "Bricolage Grotesque",
+          fontWeight: 800,
+          fontSize: 17,
+          letterSpacing: -0.7,
         }}
       >
         {profile.monogram}
       </div>
     ),
-    { ...size }
+    { ...size, fonts: [{ name: "Bricolage Grotesque", data: extraBold, weight: 800, style: "normal" }] },
   );
 }

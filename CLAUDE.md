@@ -469,7 +469,7 @@ moves into `lib/`. No lint rule or test fences this boundary, so grep for
 (short enough to show whole), every page a person lands on (`/`, `/resume`)
 shares with the root's `opengraph-image`, and a page that sets its own
 `openGraph` spreads `OPEN_GRAPH_BASE` and names `SHARE_IMAGE` (a page's
-`openGraph` replaces the layout's whole). Production is indexed; a Vercel
+`openGraph` replaces the layout's whole). The card (round 31) hangs the oak's first ticket beside the h1 in the morning sky; it and the two icons are drawn by `next/og` from static TTFs in `assets/fonts/` and `public/scenery` drawings recoloured by `src/lib/share-image.ts` (Satori has no masks and no aliases, so their colours are literals named for their tokens), and `SHARE_IMAGE.alt` says what the card shows. Production is indexed; a Vercel
 preview says noindex, its robots.txt disallows everything and its sitemap is
 empty (`INDEXABLE`). The sitemap lists `/` and `/resume`; robots keeps out of
 `/api/`. A missing page is `src/app/not-found.tsx`, in my voice, noindex and

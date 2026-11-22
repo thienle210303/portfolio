@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="1440" />
+    <title>The share card: what a link to the site looks like</title>
+    <link rel="stylesheet" href="board.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 31. The card LinkedIn, Slack and iMessage show for a link to
+       * the site, before anyone clicks (src/app/opengraph-image.tsx). Today it
+       * is a black template from before round 21. This board draws it in the
+       * day sky with the site's own objects.
+       *
+       * Drawn the way the build can draw it: Satori lays out with flexbox and
+       * absolute boxes, can't use CSS masks, so every drawing is an <img> of a
+       * public/scenery file with its ink set to a colour (art/, made by the
+       * same recolouring), and every colour is a literal named for its token.
+       * Words and figures come from src/content/portfolio.ts: profile.name,
+       * profile.title, profile.headline (B only) and the DoorDash ticket on the
+       * oak (highlights[0] and [1]).
+       */
+      .shell-wide { max-width: 1280px; margin: 0 auto; padding: 0 16px 96px; }
+      .row-label { margin: 56px 0 14px; }
+      .row-label .label { display: block; margin-bottom: 4px; }
+      .frame { display: inline-block; box-shadow: 0 0 0 1px rgb(29 35 33 / 0.18), 0 10px 30px rgb(29 35 33 / 0.12); border-radius: 10px; overflow: hidden; line-height: 0; }
+      .seen { display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; }
+      .seen figure { margin: 0; }
+      .seen figcaption { margin-top: 10px; font: 400 14px/1.4 var(--font-mono); color: var(--fg-muted); }
+      .z552 { zoom: 0.46; }
+      .z360 { zoom: 0.3; }
+      ol.decide { margin: 12px 0 0; padding-left: 1.4em; max-width: 72ch; }
+      ol.decide li { margin: 6px 0; }
+
+      /* ---------------------------------------------------------------- */
+      /* The card, 1200 × 630. Literals, each named for its token.         */
+      /* ---------------------------------------------------------------- */
+      .card {
+        position: relative;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        /* --sky by day: --color-morning-high, --color-morning, --color-morning-low */
+        background: linear-gradient(180deg, #dce6e2 0%, #e4eae1 45%, #ecece2 100%);
+        color: #1d2321; /* --color-ink */
+        font-family: "Bricolage Grotesque", sans-serif;
+        line-height: 1;
+        text-align: left;
+      }
+      .card > * { position: absolute; }
+      .card img { display: block; }
+      .card .sky { left: 0; top: 0; width: 1200px; height: 750px; }
+      /* The pine at 0.8 of its drawing: 144 wide, its trunk 77 in, the line
+         tied on 39 down; it runs on below the bank. */
+      .card .pine { left: 1053px; top: 24px; width: 144px; height: 2016px; }
+      /* The bamboo at 1.15 (POLE in draw-scenery.mjs; Yard.tsx's pieces),
+         mirrored so its crown leans into the card, its stem down to the bank. */
+      .card .pole { left: -24.6px; top: 34px; width: 112.7px; height: 574px; transform: scaleX(-1); transform-origin: 96.6px 0; }
+      .card .pole > * { position: absolute; }
+      .card .pole .crown { left: 0; top: 0; width: 112.7px; height: 240.4px; }
+      .card .pole .stem { left: 82.8px; top: 238.4px; width: 27.6px; height: 335.6px; overflow: hidden; display: flex; flex-direction: column; }
+      .card .pole .stem img { width: 27.6px; height: 248.4px; flex: none; }
+      .card .pole .sprig { width: 48.3px; height: 46px; left: 43.7px; }
+      .card .nonla { left: 41px; top: 128px; width: 108px; height: 117px; }
+      .card .tuft { left: 30.6px; top: 589px; width: 82.8px; height: 39.1px; }
+      .card .bank { left: 0; top: 594px; width: 1200px; height: 36px; display: flex; }
+      .card .bank img { width: 504px; height: 36px; flex: none; }
+      .card .line { left: 0; top: 0; width: 1200px; height: 630px; }
+
+      /* The DoorDash ticket from the oak: manila at 80% kraft
+         (color-mix(--color-kraft 80%, --color-manila)), two eyelets, the
+         2026 stub joined at a perforation. */
+      .ticket {
+        left: 700px;
+        top: 214px;
+        width: 344px;
+        display: flex;
+        flex-direction: column;
+        transform: rotate(-1.5deg);
+        transform-origin: 50% 0;
+      }
+      .ticket .half {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        background: #e5d4ab;
+        padding: 42px 22px 16px;
+        clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%, 0 16px);
+      }
+      .ticket .stub { clip-path: none; padding: 16px 22px 22px; border-top: 2px dashed rgb(74 79 69 / 0.45); }
+      .ticket .row { display: flex; align-items: center; justify-content: space-between; }
+      .ticket .who { font-size: 24px; font-weight: 600; }
+      .ticket .value { font-size: 64px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; white-space: nowrap; }
+      .ticket .stub .value { margin-top: 0; }
+      .ticket .measure { font: 400 19px/1.2 "Courier Prime", monospace; color: #4a4f45; margin-top: 6px; white-space: nowrap; } /* --color-kraft-muted */
+      .ticket .what { font-size: 23px; font-weight: 400; margin-top: 8px; }
+      .ticket .date {
+        font: 700 17px/1 "Courier Prime", monospace;
+        letter-spacing: 0.08em;
+        color: #4a4f45; /* --color-kraft-muted */
+        border: 2px solid #4a4f45;
+        border-radius: 4px;
+        padding: 4px 7px 3px;
+        transform: rotate(-3deg);
+      }
+      .ticket .stub .date { transform: rotate(4deg); }
+      /* A brass eyelet: the sky through the hole, twine-and-manila ring. */
+      .ticket .eye {
+        position: absolute;
+        top: 14px;
+        width: 16px;
+        height: 16px;
+        margin-left: -8px;
+        border-radius: 50%;
+        background: #e0e8e2;
+        box-shadow: 0 0 0 4px #b9ab8e, 0 0 0 6px #766950; /* twine 55% / 85% mixes */
+      }
+
+      /* A: the name and what I am. */
+      .words { left: 186px; top: 296px; display: flex; flex-direction: column; }
+      .words .name { font-size: 116px; font-weight: 800; letter-spacing: -0.03em; }
+      .words .role {
+        margin-top: 22px;
+        font: 700 25px/1 "Courier Prime", monospace;
+        letter-spacing: 0.22em;
+        color: #56605a; /* --color-muted */
+        text-transform: uppercase;
+      }
+      /* B: the h1, with the name and role as its label. */
+      .card[data-v="b"] .words { top: 232px; width: 510px; }
+      .card[data-v="b"] .words .role { margin: 0 0 18px; font-size: 21px; letter-spacing: 0.16em; order: -1; }
+      .card[data-v="b"] .words .name { display: none; }
+      .card .words .h1 { display: none; }
+      .card[data-v="b"] .words .h1 { display: block; font-size: 64px; font-weight: 800; line-height: 1.02; letter-spacing: -0.025em; }
+
+      /* The optional tab icon: the header's TL tag as paper. */
+      .icons { display: flex; gap: 56px; align-items: flex-end; flex-wrap: wrap; }
+      .icons figure { margin: 0; }
+      .icons img { display: block; image-rendering: pixelated; }
+      .tl {
+        position: relative;
+        width: 180px;
+        height: 180px;
+        border-radius: 40px;
+        background: #fbfbf8; /* --color-paper */
+        box-shadow: inset 0 0 0 5px #1d2321;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font: 800 92px/1 "Bricolage Grotesque", sans-serif;
+        letter-spacing: -0.04em;
+        color: #1d2321;
+      }
+      .tl.z32 { zoom: calc(32 / 180); }
+      .tl.big32 { zoom: calc(96 / 180); }
+    </style>
+  </head>
+  <body>
+    <main class="shell-wide">
+      <header class="row-label" style="margin-top: 40px">
+        <span class="label">Round 31 · v1 · 2026-11-21</span>
+        <h1 class="page-title">The share card</h1>
+        <p class="lead" style="max-width: 70ch; margin-top: 10px">
+          What LinkedIn, Slack and iMessage show for a link to the site, before
+          anyone clicks. Today it is a black template from before round 21. Here
+          it is the morning sky: a line strung between a bamboo pole and a pine
+          that both stand in the bank, and the DoorDash ticket from the oak
+          hanging from it. 17h → 3m is the engineering; 2 → 25 is the agent
+          work. Every word and figure is already on the site.
+        </p>
+      </header>
+
+      <section>
+        <div class="row-label"><span class="label">Today</span></div>
+        <div class="frame"><img src="art/before-share.png" width="600" height="315" alt="Today's card: Thien Le and the positioning line in grey on black." /></div>
+      </section>
+
+      <section>
+        <div class="row-label"><span class="label">A · the name, and the ticket</span><span class="muted">Recommended: the name is what a feed reader needs; the h1 is waiting on the page.</span></div>
+        <div class="frame" data-card="a"></div>
+      </section>
+
+      <section>
+        <div class="row-label"><span class="label">B · the h1, the name as its label</span><span class="muted">The hero's voice. Smaller name, more words to read at feed size.</span></div>
+        <div class="frame" data-card="b"></div>
+      </section>
+
+      <section>
+        <div class="row-label">
+          <span class="label">As it is seen</span>
+          <span class="muted">552px is a LinkedIn post on a laptop; 360px is Slack, iMessage, or LinkedIn on a phone. At 360 only the name and the two figures need to read.</span>
+        </div>
+        <div class="seen">
+          <figure><div class="frame"><div class="z552" data-card="a"></div></div><figcaption>A · 552px</figcaption></figure>
+          <figure><div class="frame"><div class="z552" data-card="b"></div></div><figcaption>B · 552px</figcaption></figure>
+          <figure><div class="frame"><div class="z360" data-card="a"></div></div><figcaption>A · 360px</figcaption></figure>
+          <figure><div class="frame"><div class="z360" data-card="b"></div></div><figcaption>B · 360px</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <div class="row-label">
+          <span class="label">Optional · the tab icon</span>
+          <span class="muted">Not asked for. src/app/icon.tsx and apple-icon.tsx are the same black leftover. Built only if you say so.</span>
+        </div>
+        <div class="icons">
+          <figure><img src="art/before-icon.png" width="96" height="96" alt="Today's tab icon: TL in off-white on black." /><figcaption class="muted">Today, 32px shown ×3</figcaption></figure>
+          <figure><img src="art/before-apple-icon.png" width="180" height="180" alt="Today's home-screen icon: TL on black." /><figcaption class="muted">Today, 180px</figcaption></figure>
+          <figure><div class="tl big32">TL</div><figcaption class="muted">Paper, 32px shown ×3</figcaption></figure>
+          <figure><div class="tl">TL</div><figcaption class="muted">Paper, 180px</figcaption></figure>
+        </div>
+      </section>
+
+      <section>
+        <div class="row-label"><span class="label">To decide</span></div>
+        <ol class="decide">
+          <li>A or B.</li>
+          <li>The tab icon too, or not.</li>
+          <li>The build needs two font files the card can read (Satori takes TTF, not the woff2 the site serves): Bricolage Grotesque and Courier Prime, from Google Fonts, both under the SIL Open Font Licence. I'll name each file and its size before downloading.</li>
+        </ol>
+      </section>
+    </main>
+
+    <template id="card">
+      <div class="card">
+        <img class="sky" src="art/sky-day.svg" alt="" />
+        <img class="pine" src="art/pine.svg" alt="" />
+        <div class="pole">
+          <img class="crown" src="art/bamboo-top.svg" alt="" />
+          <div class="stem"><img src="art/bamboo-stem.svg" alt="" /><img src="art/bamboo-stem.svg" alt="" /></div>
+          <img class="sprig" src="art/bamboo-sprig.svg" style="top: 319.7px" alt="" />
+          <img class="sprig" src="art/bamboo-sprig-b.svg" style="top: 506px" alt="" />
+        </div>
+        <svg class="line" viewBox="0 0 1200 630" aria-hidden="true">
+          <!-- twine (--color-twine), from the bamboo's tie to the pine's trunk -->
+          <path data-line d="M72 73 Q600 250 1130 63" fill="none" stroke="#8b7b5e" stroke-width="2.4" stroke-linecap="round" />
+          <path data-string="0.25" fill="none" stroke="#8b7b5e" stroke-width="2" stroke-linecap="round" />
+          <path data-string="0.75" fill="none" stroke="#8b7b5e" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <img class="nonla" src="art/non-la.svg" alt="" />
+        <div class="ticket">
+          <div class="half">
+            <span class="eye" style="left: 25%"></span>
+            <span class="eye" style="left: 75%"></span>
+            <div class="row"><span class="who">DoorDash</span><span class="date">2025</span></div>
+            <span class="value">17h → 3m</span>
+            <span class="what">Scraper, rebuilt</span>
+          </div>
+          <div class="half stub">
+            <div class="row"><span class="value">2 → 25</span><span class="date">2026</span></div>
+            <span class="measure">onboarded merchants/month</span>
+            <span class="what">Agent workflow</span>
+          </div>
+        </div>
+        <div class="bank"><img src="art/bank-grass.svg" alt="" /><img src="art/bank-grass.svg" alt="" /><img src="art/bank-grass.svg" alt="" /></div>
+        <img class="tuft" src="art/bamboo-tuft.svg" alt="" />
+        <div class="words">
+          <span class="name">Thien Le</span>
+          <span class="h1">Just a curious kid,<br />and this is<br />my youth.</span>
+          <span class="role">Thien Le · Software Engineer</span>
+        </div>
+      </div>
+    </template>
+
+    <script>
+      // Stamp the card into every slot, then hang each string from the line
+      // straight above its eyelet (the build does the same sum).
+      const LINE = { a: [72, 73], c: [600, 250], b: [1130, 63] };
+      const at = (t, i) => (1 - t) ** 2 * LINE.a[i] + 2 * t * (1 - t) * LINE.c[i] + t ** 2 * LINE.b[i];
+      const yAtX = (x) => {
+        let lo = 0, hi = 1;
+        for (let n = 0; n < 40; n++) { const mid = (lo + hi) / 2; if (at(mid, 0) < x) lo = mid; else hi = mid; }
+        return at(lo, 1);
+      };
+      const template = document.getElementById("card");
+      for (const slot of document.querySelectorAll("[data-card]")) {
+        const card = template.content.firstElementChild.cloneNode(true);
+        card.dataset.v = slot.dataset.card;
+        // A shows the name big and the role alone; B keeps "Thien Le · Software Engineer" as the label.
+        if (card.dataset.v === "a") card.querySelector(".role").textContent = "Software Engineer";
+        slot.append(card);
+        const ticket = card.querySelector(".ticket");
+        const left = parseFloat(getComputedStyle(ticket).left);
+        const top = parseFloat(getComputedStyle(ticket).top);
+        const width = ticket.offsetWidth;
+        for (const string of card.querySelectorAll("[data-string]")) {
+          const x = left + width * Number(string.dataset.string);
+          string.setAttribute("d", `M${x} ${yAtX(x)} L${x} ${top + 22}`);
+        }
+      }
+    </script>
+  </body>
+</html>
