@@ -1,0 +1,153 @@
+/*
+ * Round 28: the four chapter objects, shared by the hero boards.
+ *
+ * Each chapter hangs as the thing it was, not as a fifth copy of one tag:
+ *   2003 Kiên Giang — a rice seed packet (folded top, the rice drawing on it)
+ *   Dec 2018 Taylors — a boarding-pass stub (perforated edge, the crossing)
+ *   2021 USC        — a library due-date card (ruled, the year stamped)
+ *   2025 DoorDash   — a receipt (mono, torn foot)
+ * Two are pinned straight to the line with a wooden clothespin, two hang on
+ * a string from an eyelet, so the line takes weight differently under each.
+ * Paper is the oak's manila family (light in both themes) except the
+ * receipt, which is `--surface` (thermal paper is white).
+ */
+.obj {
+  position: absolute;
+  color: var(--color-kraft-muted);
+  rotate: var(--tilt, 0deg);
+  transform-origin: 50% 0;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 16px 28px -14px rgb(30 40 35 / 0.35);
+}
+.obj h2 {
+  font: 700 var(--step-2) / 1.1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  color: var(--color-ink);
+}
+.obj .yr {
+  font: 700 var(--step--2) / 1 var(--font-mono);
+  letter-spacing: var(--tracking-caps);
+}
+.obj .art {
+  margin-top: 10px;
+}
+
+/* A wooden clothespin, drawn as a mask in the real build (`clothespin`). */
+.pin-wood {
+  position: absolute;
+  left: 50%;
+  top: -22px;
+  width: 12px;
+  height: 40px;
+  translate: -50% 0;
+  background: var(--color-wood-line);
+  border-radius: 2px 2px 3px 3px;
+  box-shadow: inset -3px 0 0 rgb(0 0 0 / 0.12);
+  z-index: 2;
+}
+.pin-wood::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 15px;
+  height: 4px;
+  background: var(--color-bark-inner);
+  border-radius: 2px;
+}
+
+/* 1. Seed packet: manila, a folded flap across the top. */
+.packet {
+  background: var(--color-manila);
+  padding: 34px 16px 14px;
+  border-radius: 2px;
+}
+.packet::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 22px;
+  background: color-mix(in srgb, var(--color-kraft) 70%, var(--color-manila));
+  border-bottom: 1px dashed color-mix(in srgb, var(--color-kraft-muted) 40%, transparent);
+}
+.packet .yr {
+  position: absolute;
+  top: 5px;
+  left: 16px;
+}
+
+/* 2. Boarding-pass stub: landscape, perforated left edge. */
+.stub {
+  background: var(--color-manila);
+  padding: 14px 16px 14px 26px;
+  border-radius: 3px;
+  -webkit-mask: radial-gradient(circle at 0 50%, transparent 0 4px, #000 4.5px) 0 0 / 100% 12px;
+  mask: radial-gradient(circle at 0 50%, transparent 0 4px, #000 4.5px) 0 0 / 100% 12px;
+}
+.stub .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+.stub .rule {
+  border-top: 1px dashed color-mix(in srgb, var(--color-kraft-muted) 45%, transparent);
+  margin: 10px 0;
+}
+
+/* 3. Library card: kraft, ruled, the year a date stamp. */
+.card-lib {
+  background: var(--color-kraft);
+  padding: 30px 16px 14px;
+  border-radius: 2px;
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0 23px,
+    color-mix(in srgb, var(--color-kraft-muted) 22%, transparent) 23px 24px
+  );
+}
+.card-lib .yr {
+  display: inline-block;
+  border: 1.5px solid currentColor;
+  padding: 3px 5px;
+  rotate: -4deg;
+  margin-top: 8px;
+}
+
+/* 4. Receipt: thermal white, mono, torn foot. */
+.receipt {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  padding: 30px 14px 22px;
+  font-family: var(--font-mono);
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 12px 100%;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 12px 100%;
+}
+.receipt .dots {
+  border-top: 1px dashed color-mix(in srgb, var(--color-ink) 40%, transparent);
+  margin: 8px 0;
+}
+
+/* Strings from an eyelet; the line. */
+.eyelet {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: var(--ground);
+  box-shadow: inset 0 0 0 3px var(--color-gold), inset 0 0 0 4px var(--color-lacquer);
+}
+svg.line {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+svg.line path,
+svg.line line {
+  fill: none;
+  stroke: var(--twine);
+  stroke-width: 1.6;
+}

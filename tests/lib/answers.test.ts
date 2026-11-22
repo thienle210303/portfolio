@@ -151,11 +151,13 @@ describe("answer", () => {
     );
     expect(sectionless.length).toBeGreaterThan(0);
     // What cites About is what #about prints: the positioning paragraph
-    // (tests/sections/Hero.test.tsx holds it), plus the origin flight, whose
-    // `from` the field tag prints.
+    // (tests/sections/Hero.test.tsx holds it), the origin flight, whose
+    // `from` the field tag prints, and what I am doing now, the receipt's
+    // line items (round 30).
     expect(buildDocuments().filter((doc) => doc.sectionId === "about").map((doc) => doc.text)).toEqual([
       profile.positioning,
       `${origin.from} to ${origin.to}, arrived ${origin.arrived}.`,
+      ...now.items.map((item) => `${item.name}, ${item.status}: ${item.line}`),
     ]);
   });
 

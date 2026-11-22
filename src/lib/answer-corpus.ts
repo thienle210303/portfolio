@@ -504,17 +504,18 @@ export function buildDocuments(): Document[] {
   //  - *Leave them section-less.* What is shipped. A document that is retrieved,
   //    quoted and attributed with no "More on this in …" link is the one option that
   //    states exactly what is true.
-  // Round 26: what I am doing now, the new growth on the oak (#tree, where
-  // `NowShoot` renders each line as written). A mechanical join of the item's
+  // What I am doing now: the hero's receipt since round 30 (`#now`, on About;
+  // the oak held it in rounds 26 and 27). A mechanical join of the item's
   // fields, like a metric's. Its label words are the item's own and two that
   // only ever mean "now" ("now" itself is a stop word); generic ones ("work", "project") would cost
   // precision everywhere and are left out (see CLAUDE.md, round 16).
   for (const item of now.items) {
     docs.push({
       text: `${item.name}, ${item.status}: ${item.line}`,
-      source: `New growth, ${nowAsOfLabel()}`,
-      sectionId: "tree",
-      sectionLabel: "Journey",
+      source: `What I'm doing now, ${nowAsOfLabel()}`,
+      // Citations name a section; the receipt (`#now`) is on About.
+      sectionId: "about",
+      sectionLabel: "About",
       label: label("now", undefined, "lately", "these days", item.name, item.status),
     });
   }

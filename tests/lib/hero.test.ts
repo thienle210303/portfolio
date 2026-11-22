@@ -2,17 +2,28 @@ import { describe, expect, it } from "vitest";
 import { buildChapters, buildFieldTag, shortPlace } from "@/lib/hero";
 import { currentEntry } from "@/lib/content";
 import { buildDocuments } from "@/lib/answer-corpus";
-import { careerEntries, companions, hero, origin, profile } from "@/content/portfolio";
+import { careerEntries, companions, hero, now, origin, profile } from "@/content/portfolio";
 
 describe("hero chapters", () => {
   const chapters = buildChapters();
 
   it("are the four stops, in order", () => {
     expect(chapters.map((c) => c.id)).toEqual(["origin", "eastside-high", "usc-degree", "doordash"]);
-    expect(chapters.map((c) => c.year)).toEqual(["2003", "Dec 2018", "2021", "2025"]);
+    expect(chapters.map((c) => c.year)).toEqual(["2003", "Dec 2018", "2021", "2025 – now"]);
     expect(chapters.map((c) => c.place)).toEqual(["Kiên Giang", "Taylors", "USC", "DoorDash"]);
-    expect(chapters.map((c) => c.drawing)).toEqual(["tag-rice", "tag-flytrap", "tag-book", "tag-laptop"]);
+    expect(chapters.map((c) => c.drawing)).toEqual(["tag-rice", "tag-flytrap", "tag-book", null]);
+    expect(chapters.map((c) => c.front)).toEqual([
+      hero.chapterFronts.origin,
+      hero.chapterFronts["eastside-high"],
+      hero.chapterFronts["usc-degree"],
+      null,
+    ]);
     expect(chapters.map((c) => c.entryId)).toEqual([null, "eastside-high", "usc-degree", "doordash"]);
+  });
+
+  it("ends in what I am doing now: the receipt carries the list and its title", () => {
+    expect(chapters.slice(0, 3).every((c) => c.now === null)).toBe(true);
+    expect(chapters[3].now).toEqual({ title: now.label, items: now.items });
   });
 
   it("takes the Taylors line from the entry's own headline", () => {

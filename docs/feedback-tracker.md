@@ -2453,3 +2453,21 @@ Thien asked for a pass that makes the site less boxy and more hand-made. The aud
 - `pnpm verify` passes (1,094 unit tests; the one lint warning, in `DiaryBook.tsx`, predates this). The full e2e run on the dev server: 1,128 passed, 1 failed (the hero's row test, fixed as above). After the fixes the hero, contact, ask, scale, record, clipping, responsive, axe and accessibility suites pass (633).
 - Looked at: `pnpm shots r29-built`, nine widths, both themes.
 - Not changed: the résumé page's own Download/Open actions (a toolbar on the PDF page, not the page's one control).
+
+## Round 30: what I'm doing now, on the first screen (2026-11-21)
+
+Thien asked for what he is doing now to be on the first page, in place of the chapters' last card, and for the small version on the Journey to go. Boards first (`design/round-30-now-hero/`): v1 put it on the field tag; v2, at his word ("I mean these"), gives the four chapters one reading order and makes the receipt "2025 – now". Approved ("Build v2"); v3 redraws it as built.
+
+- **Chapters.** Every front reads year → place → a few words (`hero.chapterFronts`: "Rice and rivers", "Landed in SC", "ChemE, then CS") → drawing; USC's year is no longer a stamp under its name.
+- **The receipt is now.** `now` as line items (DoorDash scraping, Wordification building, TradeCorps AI-ing, 3D printing AI-ing), `#now` on it, its title read aloud only; its back links Wordification and Stocent in place of "Read this part". The laptop drawing is gone.
+- **Gone:** the nursery crate on the oak (`NowNursery.tsx`, the `nursery` and `nursery-sprouts` masks, its CSS and grow beat) and the field tag's "4 seedlings ↓". The chat cites About for these items.
+- **Height.** The hero is as tall as its content, so the receipt is held to its neighbours' height (no title, no total, tight rows): the 1024×768 and 1366×768 first-screen tests and the cats' walk to Moon at 1440×900 both depend on it. The few words cost ~20px on every card; trimming the receipt paid it back (Moon's drawing ends at 879px at 1440×900, 883 before).
+
+| When | JS | JS at load | CSS | Fonts | CLS | DOM nodes |
+|---|---|---|---|---|---|---|
+| Round 29 after (recorded above) | 212.9 KB | 212.9 KB | 39.2 KB | 115.1 KB | 0.0014 | 1862 |
+| After | 213.4 KB | 213.4 KB | 38.9 KB | 115.1 KB | 0 | 1854 |
+
+- Production build, `pnpm perf` three times, 0 skipped responses. **JS at load +0.5 KB**: `ExternalLink` and the receipt in `ChapterTags`' client chunk. CSS −0.3 KB (the crate). LCP 1212–1228 ms.
+- `pnpm verify` passes (1,094 unit tests; the one lint warning, in `DiaryBook.tsx`, predates this). Full e2e on the dev server: 1,126 passed, 3 failed; the three (a Journey test that followed the receipt's old "Read this part", and a cat test) pass after the test was pointed at USC's card and on a rerun.
+- Looked at: `pnpm shots r30-built`, nine widths, both themes.

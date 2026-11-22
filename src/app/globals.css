@@ -899,6 +899,14 @@
     padding-bottom: 1.125rem;
     mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 12px 100%;
   }
+  /* Round 30: the receipt is what I am doing now, a till's line items: the
+     name, a dot leader, the status where the price would be. */
+  [data-receipt-leader] {
+    flex: 1;
+    min-width: 0.75rem;
+    translate: 0 -0.25em;
+    border-bottom: 1.5px dotted var(--rule-color);
+  }
 
   @media (width < 64rem) {
     .hero-yard {
@@ -1542,101 +1550,6 @@
     }
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* Journey: the nursery (round 27, NowNursery.tsx)                         */
-  /*                                                                        */
-  /* What I am doing now: four seedlings in a nursery crate at the oak's    */
-  /* foot, a marker on a stick beside each. One box, 480×210 in its own     */
-  /* units, and its markers placed in percentages of it (`--mx` the stick's */
-  /* x, `--my` its top from the box's foot), so it is the same at every     */
-  /* width: on the board from 1280 in board units between the rice and the  */
-  /* still life, under the tree below that. A marker stands on its stick    */
-  /* and grows upward from it.                                              */
-  /* ---------------------------------------------------------------------- */
-  [data-nursery] {
-    position: relative;
-    container-type: inline-size;
-    aspect-ratio: 480 / 210;
-    width: min(100%, 26rem);
-    margin-top: 2.5rem;
-    margin-left: auto;
-  }
-  [data-nursery] li {
-    position: absolute;
-    left: var(--mx);
-    bottom: var(--my);
-    width: clamp(5rem, 21cqw, 6.25rem);
-    translate: -50% 0;
-  }
-  [data-marker] {
-    display: grid;
-    justify-items: start;
-    gap: 0.125rem;
-    padding: 0.4rem 0.35rem 0.45rem;
-    clip-path: none;
-    border-radius: var(--radius-paper);
-    box-shadow: var(--shadow-pinned);
-    rotate: var(--tilt);
-    transform-origin: 50% 100%;
-  }
-  [data-marker] [data-date] {
-    color: var(--accent);
-    font-size: 0.625rem;
-    padding: 2px 4px 1px;
-    margin-bottom: 0.2rem;
-  }
-  /* On the narrowest phones a long name breaks with a hyphen, never cut. */
-  [data-marker-name] {
-    hyphens: manual;
-    max-width: 100%;
-    font-weight: 600;
-    font-size: clamp(0.6875rem, 2.9cqw, 0.8125rem);
-    line-height: 1.2;
-  }
-  [data-marker-line] {
-    font-size: clamp(0.6875rem, 2.6cqw, 0.75rem);
-    line-height: 1.3;
-    color: var(--fg-muted);
-  }
-  /* 44px to press; its ring stays clear inside the marker. */
-  [data-marker-link] {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    margin-block: -14px -12px;
-    color: var(--accent);
-    font: 400 0.6875rem / 1 var(--font-mono);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-  /* The narrowest phones: the crate takes the gutters too, so four markers
-     still stand apart. */
-  @media (width < 24rem) {
-    [data-nursery] {
-      width: calc(100% + 2 * var(--gutter));
-      margin-left: calc(-1 * var(--gutter));
-      margin-right: 0;
-    }
-    [data-nursery] li {
-      width: 4.5rem;
-    }
-  }
-  @media (40rem <= width < 80rem) {
-    /* Under the tree, right of the still life (which stands bottom-left). */
-    [data-nursery] {
-      margin-top: 1.5rem;
-      margin-right: 0;
-    }
-  }
-  @media (width >= 80rem) {
-    #tree [data-nursery] {
-      position: absolute;
-      left: calc(var(--fx) + 680 * var(--u));
-      top: calc(var(--by) + 690 * var(--u));
-      width: calc(480 * var(--u));
-      margin: 0;
-    }
-  }
 
   /* Bé Nhi's swing (round 22, NhiSwing.tsx). `--tie-l`/`--tie-r` are where
      each rope is tied, above the ride's top; `--tie` is what it swings
@@ -2596,19 +2509,6 @@
     }
     #tree[data-growing] [data-grow-late] {
       animation: grow-in 1s var(--ease-ink) calc(var(--grow-ms, 0ms) - 2.2s) both;
-    }
-    /* Round 27: the nursery is the show's last beat, "the shoot" (its
-       weather is the saucer). Until then it is out of sight; then the
-       seedlings come up out of the crate and the markers drop onto their
-       sticks. Nothing fades, so no text is ever half-transparent. */
-    #tree[data-growing]:not([data-weather="ufo"]) [data-nursery] {
-      visibility: hidden;
-    }
-    #tree[data-growing][data-weather="ufo"] [data-nursery] [data-scenery="nursery-sprouts"] {
-      animation: oak-rise 0.9s var(--ease-ink) both;
-    }
-    #tree[data-growing][data-weather="ufo"] [data-marker] {
-      animation: tag-drop 0.9s var(--ease-ink) 0.4s both;
     }
     #tree[data-growing] [data-hanging-tags] > ul > li:not([data-grown]) {
       visibility: hidden;
@@ -5448,8 +5348,7 @@ li + li > * > .card-label {
  * curve), and the string goes with it; lying paper (the Diary's notes) lifts
  * 3px and levels. A deeper shadow says it is off the page. Under reduced
  * motion nothing turns or moves; only the shadow deepens. Translate and rotate
- * only: nothing reflows. (The nursery's markers stay put: they are nailed to
- * their sticks, and only one of them is a link.) */
+ * only: nothing reflows. */
 @media (prefers-reduced-motion: no-preference) {
   .hero-yard li,
   [data-hanging-tags] > ul > li > div,

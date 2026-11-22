@@ -455,12 +455,12 @@ describe("the subjects #record is cited for", () => {
     expect(missing).toEqual([]);
   });
 
-  it("cites #record only for subjects it renders, and #tree only for the new growth it renders", () => {
+  it("cites #record only for subjects it renders, and About for what I am doing now", () => {
     const docs = buildDocuments();
-    // Round 26: the oak's new shoot (NowShoot.tsx) prints each of these lines.
-    expect(docs.filter((doc) => doc.sectionId === "tree").map((doc) => doc.text)).toEqual(
-      now.items.map((item) => `${item.name}, ${item.status}: ${item.line}`),
-    );
+    // Round 30: the hero's receipt prints each of these items (round 26's
+    // shoot and round 27's crate were on the oak, #tree).
+    const nowTexts = now.items.map((item) => `${item.name}, ${item.status}: ${item.line}`);
+    expect(docs.filter((doc) => nowTexts.includes(doc.text)).map((doc) => doc.sectionId)).toEqual(nowTexts.map(() => "about"));
     const needles = careerIndexable
       .flatMap((e) => [e.role, e.organization])
       .concat(projectsIndexable.map((p) => p.title), education.map((s) => s.institution));

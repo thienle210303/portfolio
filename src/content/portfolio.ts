@@ -161,6 +161,11 @@ export const hero = {
   hint: "Press a chapter and I'll tell you that part.",
   // Spoken after `profile.positioning`.
   invitation: "Come in, I'll show you around.",
+  chapterFronts: {
+    origin: "Rice and rivers",
+    "eastside-high": "Landed in SC",
+    "usc-degree": "ChemE, then CS",
+  },
   chapterLines: {
     origin: "Where I start. Rice, rivers, and a lot of questions.",
     "usc-degree": "Chemical engineering first, then computer science.",
@@ -215,26 +220,31 @@ export const journey = {
   },
 } satisfies JourneyCopy;
 
-/** What I am doing now: seedlings in a nursery crate at the oak's foot
- *  (round 27, B2; round 26 hung them on a shoot), linked from the field tag's
- *  status. A few words each, no sentences (Thien). Indexed by the chat, so
- *  "what are you doing lately?" has an answer; `asOf` dates it there. Update
- *  `asOf` whenever the list changes. Oldest first: nearest the trunk. */
+/** What I am doing now: the line items on the hero's receipt, "2025 – now"
+ *  (round 30; round 27 had them in a crate on the oak, round 26 on a shoot).
+ *  A few words each, no sentences (Thien). Indexed by the chat, so "what are
+ *  you doing lately?" has an answer; `asOf` dates it there. Update `asOf`
+ *  whenever the list changes. Oldest first. */
 export const now = {
   asOf: "2026-11",
   label: "What I'm doing now",
-  fieldTagLink: "{count} seedlings",
   items: [
-    { id: "doordash", name: "DoorDash", status: "day job", line: "Retail data" },
+    { id: "doordash", name: "DoorDash", status: "scraping", line: "Retail data" },
     {
       id: "wordification",
       name: "Wordification",
-      status: "mentoring",
-      line: "Mentoring UofSC",
+      status: "building",
+      line: "Spelling game, continued",
       link: { href: "https://wordification.scholastechnology.com", label: "site" },
     },
-    { id: "tradecorp", name: "TradeCorp", status: "building", line: "AI trading agents" },
-    { id: "3d-printing", name: "3D printing", status: "learning", line: "First prints" },
+    {
+      id: "tradecorp",
+      name: "TradeCorps",
+      status: "AI-ing",
+      line: "AI trading agents",
+      link: { href: "https://stocent.vercel.app", label: "Stocent" },
+    },
+    { id: "3d-printing", name: "3D printing", status: "AI-ing", line: "AI print system" },
   ],
 } satisfies NowCopy;
 

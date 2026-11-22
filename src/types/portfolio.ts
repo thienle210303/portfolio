@@ -122,6 +122,13 @@ export interface HeroCopy {
   readonly hint: string;
   /** Follows `profile.positioning` in the hero's body. */
   readonly invitation: string;
+  /** A few words on each chapter's front, under its place (round 30). The
+   *  receipt has none: its front is what I am doing now (`now`). */
+  readonly chapterFronts: {
+    readonly origin: string;
+    readonly "eastside-high": string;
+    readonly "usc-degree": string;
+  };
   /** The Taylors line is the entry's own `headline`, so it is not here. */
   readonly chapterLines: {
     readonly origin: string;
@@ -459,14 +466,14 @@ export interface JourneyCopy {
 }
 
 /**
- * What I am doing now (round 27): seedlings in a nursery crate at the oak's
- * foot, a marker each. No figure on any: nothing there is measured yet, and a
- * seedling says so. Ordered oldest first, nearest the trunk.
+ * What I am doing now (round 30): line items on the hero's receipt, the last
+ * chapter on the line (round 27 had them as seedlings in a crate on the oak).
+ * No figure on any: nothing there is measured yet. Oldest first.
  */
 export interface NowItem {
   readonly id: string;
   readonly name: string;
-  /** One or two words, stamped on the marker: "building", "day job". */
+  /** One or two words, the receipt's price column: "building", "scraping". */
   readonly status: string;
   /** Two or three words, never a sentence. */
   readonly line: string;
@@ -475,10 +482,8 @@ export interface NowItem {
 export interface NowCopy {
   /** "YYYY-MM": when the list was last true (the chat's source line). */
   readonly asOf: string;
-  /** The list's accessible name. */
+  /** The receipt's title, and the list's accessible name. */
   readonly label: string;
-  /** The field tag's link under its status, `{count}` the number of items. */
-  readonly fieldTagLink: string;
   readonly items: readonly NowItem[];
 }
 

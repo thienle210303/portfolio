@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="390,1440" />
+    <title>Hero: the line ends in what I'm doing now</title>
+    <link rel="stylesheet" href="board.css" />
+    <link rel="stylesheet" href="objects.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 30 v2 (supersedes v1's field-tag options, at Thien's word:
+       * "I mean these", the chapters). The four chapters keep their objects
+       * (round 28) but read one way:
+       *
+       *   1. Every front reads year → place → a few words → its drawing, the
+       *      year always first, top-left, in the same mono. Each object keeps
+       *      its own make (flap, perforation, ruling, torn foot).
+       *   2. The receipt is "2025 – now": the "now" list as line items, so
+       *      the first screen ends in the present. It takes over `#now`.
+       *   3. The crate on the oak goes (it would repeat the receipt). The
+       *      field tag's "4 seedlings ↓" goes with it; Status stays "Still
+       *      growing".
+       *
+       * Unchanged: the line, its supports, two pinned and two on strings, the
+       * flip to my line about each chapter, the field tag, the h1 and actions.
+       */
+      .shell-wide { max-width: 1440px; margin: 0 auto; padding: 0 16px; }
+      .row-label { margin: 48px 0 12px; }
+      .strip { position: relative; height: 430px; overflow: hidden; border-radius: 6px; }
+      .strip svg.line { width: 100%; height: 100%; }
+      .strip .obj { --tilt: 0deg; }
+      .obj .few {
+        display: block;
+        margin-top: 4px;
+        font: italic 400 var(--step-0) / 1.25 var(--font-serif);
+        color: var(--color-ink);
+      }
+      .obj .yr { color: var(--color-kraft-muted); }
+      /* v2: the year in one place on every object. */
+      .v2 .packet .yr { position: absolute; top: 5px; left: 16px; }
+      .v2 .card-lib .yr { border: 0; padding: 0; rotate: 0deg; margin: 0 0 6px; display: block; }
+      .v2 .stub .row { margin-bottom: 2px; }
+
+      /* The receipt as a till receipt: line items with dot leaders. */
+      .receipt.now { width: 230px; padding: 30px 14px 26px; }
+      .receipt .head { display: flex; justify-content: space-between; font: 700 var(--step--2) / 1 var(--font-mono); letter-spacing: var(--tracking-caps); color: var(--color-kraft-muted); }
+      .receipt .title { font: 700 var(--step-1) / 1.15 var(--font-display); color: var(--color-ink); margin: 2px 0 0; }
+      .items { list-style: none; margin: 0; padding: 0; font: 400 13px / 1.35 var(--font-mono); color: var(--color-ink); }
+      .items li { display: flex; align-items: baseline; gap: 4px; padding: 3px 0; }
+      .items .nm { font-weight: 700; white-space: nowrap; }
+      .items .lead { flex: 1; border-bottom: 1.5px dotted color-mix(in srgb, var(--color-ink) 45%, transparent); translate: 0 -3px; min-width: 10px; }
+      .items .st { white-space: nowrap; color: var(--color-kraft-muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+      .items .ln { display: block; flex-basis: 100%; margin-top: -2px; font-size: 12px; color: var(--color-kraft-muted); }
+      .items li { flex-wrap: wrap; }
+      .total { display: flex; justify-content: space-between; font: 700 12px / 1 var(--font-mono); color: var(--color-ink); letter-spacing: 0.04em; }
+
+      .fieldmini { position: absolute; width: 230px; background: var(--color-paper); color: var(--color-ink); padding: 30px 14px 14px; font: 400 11px / 1.6 var(--font-mono); box-shadow: 0 16px 28px -14px rgb(30 40 35 / 0.35); }
+      .fieldmini b { font-weight: 700; }
+      .notes { max-width: 52rem; margin: 40px auto 60px; display: grid; gap: 12px; }
+      .notes h2 { font-size: var(--step-0); margin: 16px 0 0; }
+      .notes p { margin: 0; }
+
+      /* Phone: two objects a pass, as built. */
+      .phone { display: none; }
+      @media (width < 64rem) {
+        .desk { display: none; }
+        .phone { display: block; }
+        .pstrip { position: relative; height: 940px; overflow: hidden; border-radius: 6px; }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="section">
+      <div class="shell-wide">
+        <!-- ===================== DESKTOP, 1440 ===================== -->
+        <div class="desk">
+          <p class="label row-label">As built (round 28)</p>
+          <div class="strip">
+            <svg class="line" viewBox="0 0 1408 470" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M40 70 Q 700 140 1368 60" />
+              <line x1="490" y1="108" x2="490" y2="140" />
+              <line x1="1000" y1="104" x2="1000" y2="128" />
+              <line x1="1240" y1="80" x2="1240" y2="130" />
+            </svg>
+            <div class="art" style="position:absolute;left:0;top:60px;width:34px;height:410px">bamboo</div>
+            <div class="art" style="position:absolute;right:0;top:50px;width:34px;height:420px">pine</div>
+            <div class="obj packet" style="left:80px;top:86px;width:200px;--tilt:-2deg">
+              <span class="pin-wood"></span><span class="yr">2003</span>
+              <h2>Kiên Giang</h2>
+              <div class="art" style="height:110px">rice</div>
+            </div>
+            <div class="obj stub" style="left:330px;top:140px;width:210px;--tilt:2deg">
+              <span class="eyelet" style="left:160px"></span>
+              <div class="row"><span class="yr">Dec 2018</span><span class="yr">→</span></div>
+              <h2 style="margin-top:6px">Taylors</h2>
+              <div class="rule"></div>
+              <div class="art" style="height:90px">flytrap</div>
+            </div>
+            <div class="obj card-lib" style="left:600px;top:112px;width:210px;--tilt:-1deg">
+              <span class="pin-wood"></span>
+              <h2>USC</h2><span class="yr">2021</span>
+              <div class="art" style="height:100px;margin-top:12px">open book</div>
+            </div>
+            <div class="obj receipt" style="left:880px;top:128px;width:200px;--tilt:2deg">
+              <span class="eyelet"></span>
+              <div class="yr">2025</div><div class="dots"></div>
+              <h2>DoorDash</h2><div class="dots"></div>
+              <div class="art" style="height:80px">laptop</div>
+            </div>
+            <div class="fieldmini" style="left:1130px;top:130px;rotate:1.5deg">
+              <b>Field tag No. 001</b><br />Habitat · DoorDash, retail data<br />…<br /><b>Status</b> · Still growing<br /><span class="accent">4 seedlings ↓</span>
+            </div>
+          </div>
+
+          <p class="label row-label">v2 · one reading order, and the line ends now</p>
+          <div class="strip v2">
+            <svg class="line" viewBox="0 0 1408 470" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M40 70 Q 700 140 1368 60" />
+              <line x1="490" y1="108" x2="490" y2="140" />
+              <line x1="1000" y1="104" x2="1000" y2="124" />
+              <line x1="1240" y1="80" x2="1240" y2="130" />
+            </svg>
+            <div class="art" style="position:absolute;left:0;top:60px;width:34px;height:410px">bamboo</div>
+            <div class="art" style="position:absolute;right:0;top:50px;width:34px;height:420px">pine</div>
+
+            <div class="obj packet" style="left:80px;top:86px;width:200px;--tilt:-2deg">
+              <span class="pin-wood"></span><span class="yr">2003</span>
+              <h2>Kiên Giang</h2>
+              <span class="few">Rice and rivers</span>
+              <div class="art" style="height:90px">rice</div>
+            </div>
+            <div class="obj stub" style="left:330px;top:140px;width:210px;--tilt:2deg">
+              <span class="eyelet" style="left:160px"></span>
+              <div class="row"><span class="yr">Dec 2018</span><span class="yr">→</span></div>
+              <h2 style="margin-top:6px">Taylors</h2>
+              <span class="few">Landed in Carolina</span>
+              <div class="rule"></div>
+              <div class="art" style="height:70px">flytrap</div>
+            </div>
+            <div class="obj card-lib" style="left:600px;top:112px;width:210px;--tilt:-1deg">
+              <span class="pin-wood"></span>
+              <span class="yr">2021</span>
+              <h2>USC</h2>
+              <span class="few">ChemE, then CS</span>
+              <div class="art" style="height:84px;margin-top:10px">open book</div>
+            </div>
+
+            <!-- The receipt: 2025 – now. -->
+            <div class="obj receipt now" style="left:870px;top:124px;--tilt:2deg">
+              <span class="eyelet"></span>
+              <div class="head"><span>2025 – NOW</span><span>No. 004</span></div>
+              <p class="title">What I'm doing now</p>
+              <div class="dots"></div>
+              <ul class="items">
+                <li><span class="nm">DoorDash</span><span class="lead"></span><span class="st">day job</span></li>
+                <li><span class="nm">Wordification</span><span class="lead"></span><span class="st">building</span></li>
+                <li><span class="nm">TradeCorps</span><span class="lead"></span><span class="st">AI-ing</span></li>
+                <li><span class="nm">3D printing</span><span class="lead"></span><span class="st">AI-ing</span></li>
+              </ul>
+              <div class="dots"></div>
+              <div class="total"><span>STILL GROWING</span><span>4</span></div>
+            </div>
+
+            <div class="fieldmini" style="left:1130px;top:130px;rotate:1.5deg">
+              <b>Field tag No. 001</b><br />Habitat · DoorDash, retail data<br />…<br /><b>Status</b> · Still growing
+            </div>
+
+            <span class="pin" style="left:62px;top:84px">1</span>
+            <span class="pin" style="left:1090px;top:120px">2</span>
+            <span class="pin" style="left:1350px;top:180px">3</span>
+          </div>
+        </div>
+
+        <!-- ===================== PHONE, 390 ===================== -->
+        <div class="phone">
+          <p class="label row-label">v2 · phone (passes as built, between two bamboo poles)</p>
+          <div class="pstrip v2">
+            <svg class="line" viewBox="0 0 358 940" preserveAspectRatio="none" aria-hidden="true" style="width:100%;height:100%">
+              <path d="M12 40 Q 179 70 346 40" />
+              <path d="M12 380 Q 179 410 346 380" />
+              <line x1="302" y1="58" x2="302" y2="84" />
+              <line x1="268" y1="398" x2="268" y2="420" />
+            </svg>
+            <div class="art" style="position:absolute;left:0;top:20px;width:10px;height:920px">bamboo</div>
+            <div class="art" style="position:absolute;right:0;top:20px;width:10px;height:920px">bamboo</div>
+
+            <div class="obj packet" style="left:20px;top:54px;width:150px;--tilt:-2deg">
+              <span class="pin-wood"></span><span class="yr">2003</span>
+              <h2 style="font-size:var(--step-1)">Kiên Giang</h2>
+              <span class="few" style="font-size:var(--step--1)">Rice and rivers</span>
+              <div class="art" style="height:70px">rice</div>
+            </div>
+            <div class="obj stub" style="left:184px;top:84px;width:156px;--tilt:2deg">
+              <span class="eyelet" style="left:118px"></span>
+              <div class="row"><span class="yr">Dec 2018</span><span class="yr">→</span></div>
+              <h2 style="font-size:var(--step-1);margin-top:6px">Taylors</h2>
+              <span class="few" style="font-size:var(--step--1)">Landed in Carolina</span>
+              <div class="rule"></div>
+              <div class="art" style="height:56px">flytrap</div>
+            </div>
+
+            <!-- Second pass: USC beside the receipt; the receipt is taller, so it hangs longer. -->
+            <div class="obj card-lib" style="left:20px;top:392px;width:150px;--tilt:-1deg">
+              <span class="pin-wood"></span>
+              <span class="yr">2021</span>
+              <h2 style="font-size:var(--step-1)">USC</h2>
+              <span class="few" style="font-size:var(--step--1)">ChemE, then CS</span>
+              <div class="art" style="height:64px;margin-top:8px">open book</div>
+            </div>
+            <div class="obj receipt now" style="left:176px;top:420px;width:170px;padding:28px 10px 24px;--tilt:2deg">
+              <span class="eyelet"></span>
+              <div class="head"><span>2025 – NOW</span></div>
+              <p class="title" style="font-size:var(--step-0)">What I'm doing now</p>
+              <div class="dots"></div>
+              <ul class="items" style="font-size:12px">
+                <li><span class="nm">DoorDash</span><span class="lead"></span><span class="st" style="font-size:11px">day job</span></li>
+                <li><span class="nm">Wordification</span><span class="lead"></span></li>
+                <li style="justify-content:flex-end;margin-top:-4px"><span class="st" style="font-size:11px">building</span></li>
+                <li><span class="nm">TradeCorps</span><span class="lead"></span><span class="st" style="font-size:11px">AI-ing</span></li>
+                <li><span class="nm">3D printing</span><span class="lead"></span><span class="st" style="font-size:11px">AI-ing</span></li>
+              </ul>
+              <div class="dots"></div>
+              <div class="total"><span>STILL GROWING</span><span>4</span></div>
+            </div>
+            <div class="fieldmini" style="left:30px;top:760px;width:300px;rotate:1deg">
+              <b>Field tag No. 001</b> (on the third pass, as built)<br />…<br /><b>Status</b> · Still growing
+            </div>
+            <span class="pin" style="left:2px;top:52px">1</span>
+            <span class="pin" style="left:330px;top:412px">2</span>
+            <span class="pin" style="left:316px;top:752px">3</span>
+          </div>
+        </div>
+
+        <div class="notes data">
+          <p>
+            <b>1. One reading order.</b> Every chapter's front reads year, then place, then a few words in the hero's handwriting
+            (Newsreader italic), then its drawing. The year is always first and top-left, in the same mono: USC's stamp becomes a plain year
+            above the name, like the rest. Each object keeps what makes it that object. The few words are new copy (a `front` per chapter in
+            the content) and are drafts.
+          </p>
+          <p>
+            <b>2. The receipt is now.</b> “2025 – NOW”, then “What I'm doing now” and the list as line items: the name, a dot leader, the
+            stamp. The total line counts the items. The laptop drawing goes, since the receipt needs its height. The receipt takes over
+            <code>#now</code>, so the chat's citations and old links land on it. Its front is still the button that turns it over; on the back,
+            my line about DoorDash, “Read this part”, and the two links (Wordification's site, Stocent). Links cannot sit inside the
+            front's button, which is why they move to the back.
+          </p>
+          <p>
+            <b>3. Off the oak, off the field tag.</b> The crate at the oak's foot is removed (the drawings <code>nursery</code> and
+            <code>nursery-sprouts</code> with it). “Watch it grow” ends on the grown oak, and its last beat lights the receipt on the line
+            instead. The field tag's Status keeps “Still growing” and loses its link.
+          </p>
+          <p>
+            <b>Both themes:</b> the papers are light in both (manila and thermal white), and their inks are ones
+            <code>docs/contrast.md</code> already measures. No new colour; the field tag's stamp is still the one red.
+          </p>
+          <h2>Yours to decide</h2>
+          <p>1. The few words on each front: “Rice and rivers”, “Landed in Carolina”, “ChemE, then CS”. Change any of them.</p>
+          <p>2. The receipt's title: “What I'm doing now”, or none (just “2025 – NOW”).</p>
+          <p>3. Remove the crate on the oak (recommended), or keep it as the long version.</p>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

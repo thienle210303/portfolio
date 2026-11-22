@@ -21,7 +21,6 @@ export const INK_DRAWINGS = [
   "tag-rice",
   "tag-flytrap",
   "tag-book",
-  "tag-laptop",
   "clothespin",
   "oak",
   "oak-leaves",
@@ -32,8 +31,6 @@ export const INK_DRAWINGS = [
   "oak-roots",
   "oak-bough",
   "oak-bough-leaves",
-  "nursery",
-  "nursery-sprouts",
   "journey-rice",
   // Contact
   "postmark",

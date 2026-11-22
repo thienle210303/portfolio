@@ -1,0 +1,271 @@
+/*
+ * The sketch kit for round 25's boards. A board is a small responsive page
+ * drawn with the site's real tokens (../../../system/tokens.css, generated
+ * from globals.css), fonts and copy; drawings are stood in for by labelled
+ * dashed boxes, because the drawings already exist and are not what a board
+ * decides. Layout, hierarchy, spacing and breakpoints are.
+ *
+ * Not shipped: the site imports nothing from design/.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Courier+Prime:wght@400;700&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&display=swap");
+@import url("../../../system/tokens.css");
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  font-size: 16px;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  /* Stretched over the whole board (the site's sky is one window tall and
+     fixed; a board is shot whole, so that would end in a line). */
+  background: var(--sky) no-repeat top / 100% 100%, var(--ground);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: var(--step-0);
+  line-height: 1.5;
+  overflow-x: clip;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: 1.05;
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
+}
+
+/* The shell and the three breakpoints (design/system/README.md §1). */
+.shell {
+  max-width: calc(1120px + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.section {
+  padding-block: calc(var(--section-y) * 2);
+  position: relative;
+}
+
+/* Type roles (§2). */
+.display {
+  font-size: var(--step-5);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display-lg);
+}
+.chapter {
+  font-size: var(--step-chapter);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display-lg);
+}
+.page-title {
+  font-size: var(--step-4);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+}
+.heading {
+  font-size: var(--step-2);
+  font-weight: 600;
+  letter-spacing: var(--tracking-display);
+  line-height: 1.15;
+}
+.lead {
+  font-size: var(--step-1);
+  color: var(--fg-muted);
+}
+.aside {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--step-1);
+  color: var(--fg-muted);
+}
+.data {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+}
+.label {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.muted {
+  color: var(--fg-muted);
+}
+.accent {
+  color: var(--accent);
+}
+
+/* Paper: `bg-surface` is the site's own class, so tokens.css repoints the
+   ink on it at night exactly as the site does. */
+.paper {
+  background: var(--surface);
+  color: var(--fg);
+  border-radius: 2px;
+  box-shadow:
+    0 1px 0 rgb(0 0 0 / 0.04),
+    0 22px 40px rgb(30 40 35 / 0.2);
+  rotate: var(--tilt, 0deg);
+}
+.paper.flat {
+  box-shadow: 0 2px 3px -1px rgb(30 40 35 / 0.2);
+}
+.tape::before {
+  content: "";
+  position: absolute;
+  inset: -9px auto auto 50%;
+  width: 72px;
+  height: 18px;
+  translate: -50% 0;
+  rotate: -3deg;
+  background: color-mix(in srgb, var(--twine) 38%, var(--surface));
+  opacity: 0.85;
+}
+
+/* A shipping tag: clipped shoulders and a punched hole. */
+.tag {
+  position: relative;
+  background: var(--surface);
+  color: var(--fg);
+  padding: 44px 14px 16px;
+  clip-path: polygon(30px 0, calc(100% - 30px) 0, 100% 26px, 100% 100%, 0 100%, 0 26px);
+  rotate: var(--tilt, 0deg);
+}
+.tag::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: var(--hole, var(--ground));
+  box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--twine) 30%, var(--surface)), inset 0 0 0 6.5px var(--twine);
+}
+.string {
+  position: absolute;
+  background: var(--twine);
+  width: 1.5px;
+}
+
+/* Controls. One primary per screen. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  font: 600 var(--step-0) / 1 var(--font-sans);
+  background: var(--control);
+  color: var(--fg-inverse);
+  border: 0;
+  border-radius: 2px;
+}
+.btn.quiet {
+  background: none;
+  color: var(--fg);
+  padding-inline: 8px;
+}
+.field {
+  display: block;
+  border-bottom: 1.5px solid var(--fg);
+  min-height: 44px;
+}
+
+/* A drawing that already exists: named, not redrawn. */
+.art {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 6px;
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  color: var(--accent);
+  font: 400 12px / 1.25 var(--font-mono);
+  border-radius: 2px;
+}
+.art.dark {
+  border-color: color-mix(in srgb, var(--fg) 55%, transparent);
+  background: color-mix(in srgb, var(--fg) 9%, transparent);
+  color: var(--fg-muted);
+}
+
+/* Numbered pins: what a board changes. The review page lists them. */
+.pin {
+  position: absolute;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-river);
+  color: #fff;
+  font: 700 12px / 1 var(--font-mono);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+html[data-pins="off"] .pin {
+  display: none;
+}
+
+/* The header's three bits of paper, as they are (unchanged this round). */
+.hdr {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: var(--gutter);
+  z-index: 10;
+  pointer-events: none;
+}
+.hdr > * {
+  background: var(--surface);
+  color: var(--fg);
+  padding: 8px 14px;
+  font-weight: 600;
+  font-size: 15px;
+  box-shadow: 0 2px 3px -1px rgb(30 40 35 / 0.2);
+}
+.hdr .nav {
+  display: flex;
+  gap: 22px;
+  margin-left: auto;
+  margin-right: 12px;
+}
+.hdr .wide {
+  display: none;
+}
+@media (width >= 64rem) {
+  .hdr .wide {
+    display: inline;
+  }
+  .hdr .narrow {
+    display: none;
+  }
+}
+.hdr .stamp {
+  display: none;
+  outline: 2px dotted var(--rule-color);
+  outline-offset: 2px;
+}
+@media (width >= 40rem) {
+  .hdr .stamp {
+    display: block;
+  }
+}
