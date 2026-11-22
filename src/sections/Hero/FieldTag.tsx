@@ -1,7 +1,6 @@
 import { Tag } from "@/components/ui/Tag";
 import { ExternalLink } from "@/components/ui/ExternalLink";
 import { buildFieldTag } from "@/lib/hero";
-import { NOW_ID, nowFieldTagLink } from "@/lib/now";
 import LinkedInQr from "./LinkedInQr";
 
 const RULE = "my-2.5 border-t-[1.5px] border-dashed border-fg";
@@ -52,14 +51,6 @@ export default function FieldTag() {
           <dt>Status</dt>
           <dd>
             {t.status}
-            {/* Round 26: the one line in the hero that leads to what I am
-                doing now, the new growth on the oak. The count is the list's. */}
-            <a
-              href={`#${NOW_ID}`}
-              className="-my-2.5 flex min-h-11 w-fit items-center font-normal text-accent underline underline-offset-3 after:ml-1.5 after:no-underline after:content-['↓']"
-            >
-              {nowFieldTagLink()}
-            </a>
           </dd>
         </dl>
         <div className="mt-4 flex items-end justify-between gap-3">

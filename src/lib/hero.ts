@@ -2,7 +2,8 @@
  * The hero's chapters and field tag, as data. Facts are read from the content
  * layer; the only authored words are `hero` in `src/content/portfolio.ts`.
  */
-import { careerEntries, companions, hero, origin, profile, socialLinks } from "@/content/portfolio";
+import { careerEntries, companions, hero, now, origin, profile, socialLinks } from "@/content/portfolio";
+import type { NowItem } from "@/types/portfolio";
 
 export type ChapterId = "origin" | "eastside-high" | "usc-degree" | "doordash";
 
@@ -10,10 +11,15 @@ export interface Chapter {
   readonly id: ChapterId;
   readonly year: string;
   readonly place: string;
+  /** A few words under the place; null on the receipt, whose front is `now`. */
+  readonly front: string | null;
   readonly line: string;
   /** The career entry "Read this part" opens; null means the Journey itself. */
   readonly entryId: string | null;
-  readonly drawing: "tag-rice" | "tag-flytrap" | "tag-book" | "tag-laptop";
+  /** The receipt has no drawing: its height is the list's (round 30). */
+  readonly drawing: "tag-rice" | "tag-flytrap" | "tag-book" | null;
+  /** The receipt only: what I am doing now, its title and line items. */
+  readonly now: { readonly title: string; readonly items: readonly NowItem[] } | null;
 }
 
 const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -47,33 +53,41 @@ export function buildChapters(): readonly Chapter[] {
       id: "origin",
       year: origin.born.slice(0, 4),
       place: shortPlace(origin.from),
+      front: hero.chapterFronts.origin,
       line: hero.chapterLines.origin,
       entryId: null,
       drawing: "tag-rice",
+      now: null,
     },
     {
       id: "eastside-high",
       year: `${MONTH_ABBR[Number(month) - 1]} ${year}`,
       place: shortPlace(origin.to),
+      front: hero.chapterFronts["eastside-high"],
       line: headline(eastside),
       entryId: eastside.id,
       drawing: "tag-flytrap",
+      now: null,
     },
     {
       id: "usc-degree",
       year: usc.sortKey.slice(0, 4),
       place: shortPlace(usc.organization),
+      front: hero.chapterFronts["usc-degree"],
       line: hero.chapterLines["usc-degree"],
       entryId: usc.id,
       drawing: "tag-book",
+      now: null,
     },
     {
       id: "doordash",
-      year: doordash.sortKey.slice(0, 4),
+      year: `${doordash.sortKey.slice(0, 4)} – now`,
       place: shortPlace(doordash.organization),
+      front: null,
       line: hero.chapterLines.doordash,
       entryId: doordash.id,
-      drawing: "tag-laptop",
+      drawing: null,
+      now: { title: now.label, items: now.items },
     },
   ];
 }

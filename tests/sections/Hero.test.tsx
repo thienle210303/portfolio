@@ -72,8 +72,9 @@ describe("Hero", () => {
       "#tree",
       "#journey-entry-eastside-high",
       "#journey-entry-usc-degree",
-      "#journey-entry-doordash",
     ]);
+    // The fourth, the receipt, is what I am doing now: its back links to what is on it (round 30).
+    expect(document.getElementById("now")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^My LinkedIn/ })).toBeInTheDocument();
   });
 

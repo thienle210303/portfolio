@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { careerEntries, hero, profile } from "../src/content/portfolio";
+import { careerEntries, hero, now, profile } from "../src/content/portfolio";
 import { buildFieldTag } from "../src/lib/hero";
 
 // Round 21 Phase 3: the clothesline hero. My words, four chapter tags that turn
@@ -104,7 +104,7 @@ test.describe("hero", () => {
     await page.keyboard.press("Tab");
     expect(await focused(page)).toBe("Read this part");
     await page.keyboard.press("Tab");
-    expect(await focused(page)).toMatch(/^front:.*Taylors$/);
+    expect(await focused(page)).toMatch(/^front:.*Taylors/);
 
     await back(page, 0).getByRole("button").focus();
     await page.keyboard.press("Shift+Tab");
@@ -142,7 +142,7 @@ test.describe("hero", () => {
     await kien.click();
     await expect.poll(() => focused(page)).toContain(hero.chapterLines.origin);
     for (let i = 0; i < 4; i++) await page.keyboard.press("Tab"); // Read this part, Taylors, USC, DoorDash
-    expect(await focused(page)).toMatch(/^front:.*DoorDash$/);
+    expect(await focused(page)).toMatch(/^front:2025 – now .*DoorDash/);
     await page.keyboard.press("Enter");
     await expect.poll(() => focused(page)).toContain(hero.chapterLines.doordash);
     await expect(kien).toHaveAttribute("aria-expanded", "false");
@@ -179,7 +179,8 @@ test.describe("hero", () => {
           link: el.tagName === "A",
         }));
       });
-      expect(boxes).toHaveLength(2);
+      // The line and "Read this part"; the receipt's back has the line and its own links (round 30).
+      expect(boxes).toHaveLength(i === 3 ? 1 + now.items.filter((item) => item.link).length : 2);
       for (const b of boxes) {
         if (b.link) expect(b.tall, `${b.name}: a 44px target`).toBeGreaterThanOrEqual(44);
         expect(b.parent, b.name).toBe(true);
@@ -216,7 +217,7 @@ test.describe("hero", () => {
       await page.getByRole("link", { name: PRIMARY }).focus();
       await page.keyboard.press("Shift+Tab");
       const seen: string[] = [];
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 7; i++) {
         await page.keyboard.press("Tab");
         const state = await page.evaluate(() => {
           const el = document.activeElement as HTMLElement;
@@ -235,11 +236,11 @@ test.describe("hero", () => {
         expect(state.width, name).toBeGreaterThanOrEqual(2);
         expect(state.clip, name).toBe("none");
       }
-      expect(seen.map((s) => s.replace(/^front:\S+( \d{4})? /, "front:"))).toEqual([
+      // A front reads year, place, a few words (round 30): name it by its place.
+      expect(seen.map((s) => (s.startsWith("front:") ? `front:${PLACES.find((p) => s.includes(p))}` : s))).toEqual([
         PRIMARY,
         QUIET,
         ...PLACES.map((p) => `front:${p}`),
-        "4 seedlings",
         "My LinkedIn (opens in a new tab)",
       ]);
     });
@@ -386,7 +387,7 @@ test.describe("hero", () => {
   /** What holds at every width below 1024, whatever the band's arrangement. */
   function expectYard(m: YardShape, passOf: readonly number[]) {
     // DOM order is reading order: my words, the hint, 2003 → 2025, my field tag.
-    expect(m.order.map((o) => o.replace(/^.*?(Kiên Giang|Taylors|USC|DoorDash)$/, "$1"))).toEqual([
+    expect(m.order.map((o) => o.replace(/^[\s\S]*?(Kiên Giang|Taylors|USC|DoorDash)[\s\S]*$/, "$1"))).toEqual([
       "h1",
       "intro",
       "meta-actions",
@@ -791,7 +792,8 @@ test.describe("hero", () => {
         // the window leaves it (Scenery.tsx, `--pw`).
         return { lines, tagRight: tag.right, trunk: pine.left + (pine.width * 96) / 180 };
       });
-      expect(m.lines.length).toBeGreaterThanOrEqual(4);
+      // Three places: the receipt's front is what I am doing now, its names kept whole by nowrap (round 30).
+      expect(m.lines.length).toBeGreaterThanOrEqual(3);
       for (const n of m.lines) expect(n, "each place is one line").toBe(1);
       expect(m.trunk).toBeGreaterThanOrEqual(m.tagRight);
     });
@@ -973,8 +975,8 @@ test.describe("hero", () => {
           };
         }),
     );
-  // Round 26: the field tag's status links to the new growth, before the QR.
-  const TAB_ORDER = [PRIMARY, QUIET, "tag", "tag", "tag", "tag", "4 seedlings", "My LinkedIn (opens in a new tab)"];
+  // Round 30: the field tag's link to the crate is gone; what I am doing now is the last tag.
+  const TAB_ORDER = [PRIMARY, QUIET, "tag", "tag", "tag", "tag", "My LinkedIn (opens in a new tab)"];
 
   test("the actions come first in the tab order, then the tags, then the QR", async ({ page }) => {
     await open(page);
@@ -995,8 +997,8 @@ test.describe("hero", () => {
     const c = await controls(page);
     expect(c[0].left).toBeLessThan(c[1].left);
     for (let i = 3; i < 6; i++) expect(c[i].left).toBeGreaterThan(c[i - 1].left);
-    // The field tag's two (its status link, then the QR) are right of all of them.
-    for (const i of [6, 7]) expect(c[i].left).toBeGreaterThan(Math.max(...c.slice(0, 6).map((x) => x.left)));
+    // The field tag's QR is right of all of them.
+    expect(c[6].left).toBeGreaterThan(Math.max(...c.slice(0, 6).map((x) => x.left)));
   });
 
   for (const theme of ["day", "night"] as const) {

@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="390,1440" />
+    <title>About: what I'm doing now, on the field tag</title>
+    <link rel="stylesheet" href="board.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 30, About: still no new object. The field tag's Status row
+       * stops being a teaser ("Still growing / 4 seedlings ↓") and says what
+       * is growing, in the tag's own mono, so the hero shows the current work
+       * without a click. The crate on the oak (#now) stays: it is the full
+       * list, the end of "Watch it grow", and what the chat cites.
+       * Same tag at every width (on a phone, the line's last pass).
+       */
+      .pair {
+        display: grid;
+        gap: 40px;
+        justify-content: center;
+        padding-top: 5rem;
+      }
+      @media (width >= 64rem) {
+        .pair {
+          grid-template-columns: repeat(3, 340px);
+          gap: 56px;
+        }
+      }
+      .cap {
+        margin-bottom: 14px;
+      }
+      .field {
+        position: relative;
+        border: 0;
+        min-height: 0;
+        width: min(340px, 100%);
+        padding: 44px 20px 22px;
+        font-family: var(--font-mono);
+        font-size: var(--step--1);
+        line-height: 1.75;
+      }
+      .field .top {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 700;
+        padding-bottom: 10px;
+        border-bottom: 1.5px dashed var(--fg);
+      }
+      dl {
+        display: grid;
+        grid-template-columns: 9.5em 1fr;
+        gap: 0 8px;
+        margin: 10px 0 0;
+      }
+      dt {
+        color: var(--fg-muted);
+      }
+      dd {
+        margin: 0;
+      }
+      .status {
+        position: relative;
+        display: grid;
+        grid-template-columns: 9.5em 1fr;
+        gap: 0 8px;
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1.5px dashed var(--fg);
+        font-weight: 700;
+      }
+      .status a,
+      .growing a {
+        color: var(--accent);
+        text-underline-offset: 3px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        font-weight: 400;
+      }
+      /* The growing list: a status word stamped small, then a few words. */
+      /* Full width under its label: nested in the value column it overflows. */
+      .status > .wide {
+        grid-column: 1 / -1;
+      }
+      .growing {
+        list-style: none;
+        margin: 4px 0 0;
+        padding: 0;
+        font-weight: 400;
+      }
+      .growing li {
+        display: grid;
+        grid-template-columns: 9.5em 1fr;
+        gap: 0 8px;
+        gap: 0 6px;
+        align-items: baseline;
+      }
+      .growing .st {
+        font-size: 0.82em;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--fg-muted);
+      }
+      /* Inline beside its words; padding keeps the 44px target. */
+      .growing a {
+        display: inline;
+        padding-block: 12px;
+      }
+      .growing .more {
+        display: block;
+      }
+      .foot {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-top: 12px;
+      }
+      .qr {
+        width: 64px;
+        height: 64px;
+      }
+      .motto {
+        margin: 0 0 8px;
+        rotate: -6deg;
+        border: 2.5px solid var(--mark);
+        color: var(--mark);
+        padding: 2px 10px;
+        font: 700 14px / 1.3 var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .notes {
+        max-width: 50rem;
+        margin: 48px auto 0;
+        display: grid;
+        gap: 12px;
+      }
+      .notes h2 {
+        font-size: var(--step-0);
+        margin: 16px 0 0;
+      }
+      .notes p {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="section shell">
+      <div class="pair">
+        <!-- As built (round 26 / 27) -->
+        <div>
+          <p class="label cap">As built</p>
+          <div class="tag field" style="--tilt: 1deg">
+            <div class="top"><span>Field tag No. 001</span><span>That's me</span></div>
+            <dl>
+              <dt>Name</dt><dd>Thien Le</dd>
+              <dt>Native to</dt><dd>Kiên Giang, Việt Nam</dd>
+              <dt>Transplanted</dt><dd>Taylors, South Carolina</dd>
+              <dt>Habitat</dt><dd>DoorDash, retail data</dd>
+              <dt>Formerly</dt><dd>Chef, family kitchen</dd>
+              <dt>Companions</dt><dd>Two cats, Moon and Mi</dd>
+            </dl>
+            <div class="status">
+              <span>Status</span>
+              <span>Still growing<br /><a href="#">4 seedlings ↓</a></span>
+            </div>
+            <div class="foot"><div class="art qr">QR</div><p class="motto">Practice makes AI.</p></div>
+          </div>
+        </div>
+
+        <!-- A: the two that say the most, then the rest on the oak -->
+        <div>
+          <p class="label cap">A · two, then the oak</p>
+          <div class="tag field" style="--tilt: 1deg">
+            <div class="top"><span>Field tag No. 001</span><span>That's me</span></div>
+            <dl>
+              <dt>Name</dt><dd>Thien Le</dd>
+              <dt>Native to</dt><dd>Kiên Giang, Việt Nam</dd>
+              <dt>Transplanted</dt><dd>Taylors, South Carolina</dd>
+              <dt>Habitat</dt><dd>DoorDash, retail data</dd>
+              <dt>Formerly</dt><dd>Chef, family kitchen</dd>
+              <dt>Companions</dt><dd>Two cats, Moon and Mi</dd>
+            </dl>
+            <div class="status">
+              <span>Growing now</span>
+              <span class="wide">
+                <ul class="growing">
+                  <li><span class="st">building</span><span>AI trading agents</span></li>
+                  <li><span class="st">mentoring</span><span>UofSC, <a href="#">Wordification ↗</a></span></li>
+                </ul>
+                <a class="more" href="#">+2 more on the oak ↓</a>
+              </span>
+              <span class="pin" style="right: -12px; top: -12px">1</span>
+            </div>
+            <div class="foot"><div class="art qr">QR</div><p class="motto">Practice makes AI.</p></div>
+          </div>
+        </div>
+
+        <!-- B: all of it, no teaser -->
+        <div>
+          <p class="label cap">B · all four</p>
+          <div class="tag field" style="--tilt: 1deg">
+            <div class="top"><span>Field tag No. 001</span><span>That's me</span></div>
+            <dl>
+              <dt>Name</dt><dd>Thien Le</dd>
+              <dt>Native to</dt><dd>Kiên Giang, Việt Nam</dd>
+              <dt>Transplanted</dt><dd>Taylors, South Carolina</dd>
+              <dt>Habitat</dt><dd>DoorDash, retail data</dd>
+              <dt>Formerly</dt><dd>Chef, family kitchen</dd>
+              <dt>Companions</dt><dd>Two cats, Moon and Mi</dd>
+            </dl>
+            <div class="status">
+              <span>Growing now</span>
+              <span class="wide">
+                <ul class="growing">
+                  <li><span class="st">day job</span><span>Retail data</span></li>
+                  <li><span class="st">mentoring</span><span>UofSC, <a href="#">Wordification ↗</a></span></li>
+                  <li><span class="st">building</span><span>AI trading agents</span></li>
+                  <li><span class="st">learning</span><span>3D printing</span></li>
+                </ul>
+                <a class="more" href="#">On the oak ↓</a>
+              </span>
+              <span class="pin" style="right: -12px; top: -12px">2</span>
+            </div>
+            <div class="foot"><div class="art qr">QR</div><p class="motto">Practice makes AI.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes data">
+        <p>
+          <b>1 (A, recommended).</b> The Status row becomes “Growing now”. It lists the two items that say the most, each a status word
+          (small, muted, the crate markers’ own words) and a few words. The link under them goes to the crate (#now), and its count is
+          computed: the items not shown. DoorDash is left out because the Habitat row above already says it. Which items show is set in
+          the content by a flag on the item (<code>hero: true</code>), never in the component. “Still growing” goes.
+        </p>
+        <p>
+          <b>2 (B).</b> All four, oldest first like the crate, so nothing is chosen. It repeats DoorDash (Habitat), adds two lines to the
+          tag, and puts “3D printing” next to the AI work in the first screen.
+        </p>
+        <p>
+          <b>Both.</b> No new colour: links stay in <code>--accent</code> with 44px targets, the motto stamp is still the screen’s one red,
+          and the status words are <code>--fg-muted</code>. The crate on the oak is unchanged. The chat and “Watch it grow” are unchanged.
+          The list runs the tag’s full width under its label, in the same two columns as the rows above (nested in the value column it
+          overflowed). At 320 the tag is 264px wide; that needs checking in the build.
+        </p>
+        <h2>Yours to decide</h2>
+        <p>1. A or B (or keep as built).</p>
+        <p>2. The label: “Growing now” (matches the crate and the oak) or plain “Now”.</p>
+        <p>
+          3. TradeCorp’s line. “AI trading agents” is a claim with nothing behind it on the hero. One fact would make it count, for
+          example a date it went live, a number it handles, or a repo link. Only you can supply that fact. Without one it stays as it reads.
+        </p>
+      </div>
+    </section>
+  </body>
+</html>

@@ -3,10 +3,11 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ChapterTags from "@/sections/Hero/ChapterTags";
 import { buildChapters } from "@/lib/hero";
-import { hero } from "@/content/portfolio";
+import { hero, now } from "@/content/portfolio";
+import { NOW_ID } from "@/lib/now";
 
 const HREFS = ["#tree", "#journey-entry-eastside-high", "#journey-entry-usc-degree", "#journey-entry-doordash"];
-const NAMES = [/2003\s+Kiên Giang/, /Dec 2018\s+Taylors/, /2021\s+USC/, /2025\s+DoorDash/];
+const NAMES = [/^2003\s+Kiên Giang/, /^Dec 2018\s+Taylors/, /^2021\s+USC/, /^2025 – now\s+What I'm doing now/];
 
 function setup() {
   // `hang` and `hung` are the tag's place on the line, which Hero.tsx works out.
@@ -116,10 +117,31 @@ describe("ChapterTags", () => {
     });
   });
 
-  it("the drawing is decoration", () => {
+  it("the drawing is decoration (the receipt has none: its list is its height)", () => {
     const { tag } = setup();
-    for (let i = 0; i < 4; i++) {
+    expect(tag(3).front.querySelector("[data-scenery]")).toBeNull();
+    for (let i = 0; i < 3; i++) {
       expect(tag(i).front.querySelector("[data-scenery]")).toHaveAttribute("aria-hidden", "true");
     }
+  });
+
+  it("every front reads year, place, then a few words (round 30)", () => {
+    const { tag } = setup();
+    for (const [i, few] of [hero.chapterFronts.origin, hero.chapterFronts["eastside-high"], hero.chapterFronts["usc-degree"]].entries()) {
+      expect(tag(i).front.textContent).toMatch(new RegExp(`${few}$`));
+    }
+  });
+
+  it("the receipt is what I am doing now: #now, the list as line items, its links on the back", async () => {
+    const user = userEvent.setup();
+    const { tag } = setup();
+    const { li, front, back } = tag(3);
+    expect(li).toHaveAttribute("id", NOW_ID);
+    const rows = Array.from(front.querySelectorAll("[data-receipt-item]"));
+    expect(rows.map((r) => r.textContent!.replace(/\s+/g, " ").trim())).toEqual(now.items.map((i) => `${i.name} ${i.status}`));
+    expect(front.querySelector("a")).toBeNull();
+    await user.click(front);
+    const links = within(back).getAllByRole("link").filter((a) => a.getAttribute("target") === "_blank");
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(now.items.flatMap((i) => (i.link ? [i.link.href] : [])));
   });
 });

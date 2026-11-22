@@ -770,8 +770,6 @@ function poleFiles() {
   };
 }
 // ---- end The yard's bamboo ----
-// The DoorDash tag's laptop.
-const laptop = (color) => `<g fill="none" stroke="${color}" stroke-width="1.2"><rect x="44" y="30" width="62" height="40" rx="3"/><path d="M34 76H116M58 44h14M58 54h26M90 44l6 5-6 5"/></g>`;
 
 // Round 23: the Taylors tag is a Venus flytrap (it grows wild only in the
 // Carolinas) and the USC tag an open book. Line work like the tags beside them.
@@ -1295,48 +1293,6 @@ export function journeySpots() {
   });
 }
 
-// Round 27 (Thien's B2): what I am doing now is four seedlings in a nursery
-// crate at the oak's foot, oldest nearest the trunk and each smaller than the
-// last, a marker stick beside each. Two masks in one 480×210 box: the crate and
-// its sticks (`nursery`, painted by --twine) and the seedlings
-// (`nursery-sprouts`, --scene-moss). The markers are the page's own paper,
-// standing on the sticks' tops (NURSERY.plants[i].stick), so the page places
-// them from these numbers.
-export const NURSERY = {
-  box: [480, 210],
-  crate: { x: 16, top: 160, w: 448, h: 48 },
-  plants: [
-    { x: 62, h: 62, stick: 92 },
-    { x: 174, h: 50, stick: 96 },
-    { x: 286, h: 36, stick: 114 },
-    { x: 398, h: 20, stick: 124 },
-  ],
-};
-function nurseryFiles() {
-  const { box, crate, plants } = NURSERY;
-  const r = rng(41);
-  // The crate: three boards and two posts, gaps between the boards.
-  let wood = "";
-  const boards = 3, gap = 3, bh = (crate.h - gap * (boards - 1)) / boards;
-  for (let i = 0; i < boards; i++) wood += `<rect x="${crate.x}" y="${f(crate.top + i * (bh + gap))}" width="${crate.w}" height="${f(bh)}" rx="1.5"/>`;
-  for (const x of [crate.x, crate.x + crate.w - 9]) wood += `<rect x="${x}" y="${crate.top - 4}" width="9" height="${crate.h + 4}" rx="1.5"/>`;
-  // Each marker's stick, beside its seedling, from the marker's foot into the soil.
-  for (const p of plants) wood += `<rect x="${p.x + 11}" y="${p.stick - 12}" width="3.4" height="${crate.top + 8 - p.stick + 12}" rx="1"/>`;
-  // The seedlings: a stem, and pairs of leaves, fewer and smaller the younger.
-  let sprouts = "";
-  plants.forEach((p, i) => {
-    const top = crate.top - p.h, size = 10 - i * 1.4;
-    sprouts += `<path d="M${p.x} ${crate.top + 2}C${f(p.x - 2)} ${f(crate.top - p.h * 0.5)} ${f(p.x + 2)} ${f(top + 6)} ${p.x} ${top}" fill="none" stroke="${K}" stroke-width="${f(2.4 - i * 0.3)}" stroke-linecap="round"/>`;
-    const pairs = Math.max(1, Math.round(p.h / 18));
-    for (let k = 0; k < pairs; k++) {
-      const y = top + 4 + k * 15, s2 = size * (1 - k * 0.12), a = 26 + r() * 10;
-      sprouts += `<ellipse cx="${f(p.x - s2 * 0.85)}" cy="${f(y)}" rx="${f(s2)}" ry="${f(s2 * 0.42)}" transform="rotate(${f(-a)} ${f(p.x - s2 * 0.85)} ${f(y)})"/>`;
-      sprouts += `<ellipse cx="${f(p.x + s2 * 0.85)}" cy="${f(y - 3)}" rx="${f(s2)}" ry="${f(s2 * 0.42)}" transform="rotate(${f(a)} ${f(p.x + s2 * 0.85)} ${f(y - 3)})"/>`;
-    }
-  });
-  const vb = `0 0 ${box[0]} ${box[1]}`;
-  return { nursery: svg(vb, `<g fill="${K}">${wood}</g>`), "nursery-sprouts": svg(vb, `<g fill="${K}">${sprouts}</g>`) };
-}
 
 // One Hội An silk lantern; lit at night.
 function hoiAn(x, y, col, sc, night) {
@@ -1746,7 +1702,6 @@ export function drawScenery() {
     "tag-rice": svg("0 0 150 88", rice(52, 84, 3, 20, 4, K, 44, 26)),
     "tag-flytrap": svg("0 0 150 88", flytrap(K)),
     "tag-book": svg("0 0 150 88", openBook(K)),
-    "tag-laptop": svg("0 0 150 88", laptop(K)),
     // Round 28: the wooden clothespin that pins two chapters straight to the
     // line: two legs in a lighter ink with a little grain, and the spring in
     // full ink at y 17–22.5, which the page puts on the line, so the line
@@ -1766,7 +1721,6 @@ export function drawScenery() {
     ...navFiles(),
     ...contactDrawings(),
     ...journeyFiles(),
-    ...nurseryFiles(),
     ...recordFiles(),
     ...diaryFiles(),
     ...weatherFiles(),

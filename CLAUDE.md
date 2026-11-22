@@ -114,7 +114,7 @@ box half a box on) and sleeps at night (`buffalo-sleep`, in front of it all),
 shown with `.day-only` / `.night-only`. She stands in a strip the drawing
 leaves bare (`PADDY.*.clear` in the script, tested), so moving her in
 `Scenery.tsx` means moving the strip too. The chapter tags' drawings are masks too: rice, a Venus
-flytrap (Taylors grows it wild), an open book (USC), a laptop. The Diary's tree slice and its charts are
+flytrap (Taylors grows it wild), an open book (USC); the receipt has none (round 30). The Diary's tree slice and its charts are
 not files: the slice's rings are computed from content (`src/lib/record.ts`) and a
 page's before/after bars and tally marks from the entry's `diary.figure`, both
 drawn inline. Its stamps (`stamp-bank`, `-card`, `-code`, `-cart`: a bank's
@@ -166,7 +166,17 @@ clothesline of four chapters that turn over to my line about each, each
 hung as the thing it was (round 28: a rice seed packet, a boarding-pass stub, a
 library card, a receipt; two clothespinned to the line, two on strings; the
 `clothespin` mask is in `draw-scenery.mjs`, the papers are
-`[data-chapter-paper]` in globals.css), my
+`[data-chapter-paper]` in globals.css). Every front reads the same way (round
+30): the year first and top-left in one mono, the place, a few words
+(`hero.chapterFronts`), the drawing. The receipt is "2025 – now", what I am
+doing now: `now` as line items (name, dot leader, status), `#now` on its `li`,
+and on its back its own links (Wordification, Stocent) in place of "Read this
+part", because a front is a button. It is as wide as the others; where it is
+narrow an item breaks under its name. Its title is read aloud only. **The
+receipt must be no taller than its neighbours**: the hero is as tall as its
+content, so a taller line pushes the actions off a 1024×768 or 1366×768 screen
+and Moon, off duty, below the band the cats can walk in at 1440×900 (both are
+e2e tests)), my
 field tag with the LinkedIn QR at the line's end (below 1024 the line is
 strung between two supports that stand in the paddy at the page's edges and
 crosses between them: three passes between two bamboo poles on a phone, two
@@ -400,17 +410,12 @@ the Diary's pages. They are in git history; do not bring a second tree back.
   repeats exactly (`TAG_LOOKS`: paper, stamp, figure size), authored, never
   random. Labels are a few words, never sentences (Thien: "extremely brief");
   the full story is the entry's Diary page and the chat.
-- **What I am doing now: a nursery crate (round 27, Thien's B2; round 26's
-  shoot is gone).** `now` in the content file (update `asOf` when it changes)
-  is four seedlings in a crate at the oak's foot (`NowNursery.tsx`, `#now`):
-  oldest nearest the trunk, each smaller than the last, a manila marker on a
-  stick beside each with its status stamped, its name and two or three
-  words. No caption, no date, no figure. Two masks, `nursery` (--twine) and
-  `nursery-sprouts` (--scene-moss), and `NURSERY` in the script places the
-  markers. On the board between the rice and the still life; below 1280
-  under the tree. The field tag's status links to it ("4 seedlings",
-  counted), the chat indexes each item citing `#tree`, and "Watch it grow"
-  brings it in on its last beat. The highlights' CSS and tests are scoped to
+- **What I am doing now is not on the oak any more (round 30).** Round 26's
+  shoot and round 27's nursery crate are gone (git history); `now` in the
+  content file (update `asOf` when it changes) is the hero's receipt, and the
+  chat indexes each item citing About. The field tag's "4 seedlings" link went
+  with the crate; its Status is "Still growing". "Watch it grow" ends on the
+  grown oak. The highlights' CSS and tests are scoped to
   `[data-hanging-tags] > ul > li`.
 - **`src/lib/knowledge-tree.ts` outlived the drawing.** Its authored-edge rules
   (`buildCareerTree`, `buildDrawnTree`, `DEMOTED_ENTRY_IDS`, `concurrentWith`)

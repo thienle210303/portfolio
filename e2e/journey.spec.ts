@@ -467,15 +467,16 @@ test.describe("the Journey", () => {
   });
 
   for (const viewport of [WIDE, PHONE]) {
-    test(`the hero's Read this part lands DoorDash's page at ${viewport.width}`, async ({ page }) => {
+    // USC's: the receipt (round 30) links to what is on it, not to DoorDash's page.
+    test(`the hero's Read this part lands USC's page at ${viewport.width}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await open(page);
-      await page.locator('#about button[id$="-front"]').filter({ hasText: "DoorDash" }).click();
-      const read = page.locator('#about [id$="-back"]').nth(3).getByRole("link", { name: "Read this part" });
-      await expect(read).toHaveAttribute("href", "#journey-entry-doordash");
+      await page.locator('#about button[id$="-front"]').filter({ hasText: "USC" }).click();
+      const read = page.locator('#about [id$="-back"]').nth(2).getByRole("link", { name: "Read this part" });
+      await expect(read).toHaveAttribute("href", "#journey-entry-usc-degree");
       await read.click();
-      expect(Math.abs((await restingTop(row(page, "doordash"))) - ROW_TOP)).toBeLessThanOrEqual(2);
-      expect(await inBook(page, "doordash"), "the book is on another page").toBe(true);
+      expect(Math.abs((await restingTop(row(page, "usc-degree"))) - ROW_TOP)).toBeLessThanOrEqual(2);
+      expect(await inBook(page, "usc-degree"), "the book is on another page").toBe(true);
     });
   }
 
