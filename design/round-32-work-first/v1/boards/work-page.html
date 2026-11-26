@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="390,1440" />
+    <title>/work/dd-feasibility-agent: a case study, whole</title>
+    <link rel="stylesheet" href="board.css" />
+    <link rel="stylesheet" href="work.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 32 v1. One page per featured project, /work/<id>, the whole
+       * case study from `projects` in the order the type already names:
+       * problem → constraint → decision → build → proof → lesson. Every
+       * sentence is the content file's; only the section labels and the
+       * trimmed tagline (the page's description, ≤ 160 characters) are new.
+       *
+       * The page is the bench's paper at full length (B); with A its head
+       * would be a ticket's top instead. Server-rendered, plain links.
+       */
+      main { padding-top: calc(var(--header-h) + 24px); padding-bottom: 96px; }
+      .doc article.paper { padding: 0 0 32px; }
+      .doc .inner { padding: 22px 20px 0; }
+      @media (width >= 40rem) { .doc .inner { padding: 30px 40px 0; } }
+      .doc .block { display: grid; grid-template-columns: 1fr auto; border-bottom: 1.5px solid var(--fg); font: 400 var(--step--2) / 1.3 var(--font-mono); }
+      .doc .block > div { padding: 9px 14px; }
+      .doc .block > div + div { border-left: 1px solid var(--rule-color); text-align: right; }
+      .doc .block .k { display: block; color: var(--fg-muted); font-size: var(--step--2); font-weight: 700; letter-spacing: var(--tracking-caps); text-transform: uppercase; }
+      .doc h1 { margin-top: 4px; }
+      .doc .lead { margin-top: 12px; max-width: 60ch; }
+      .doc .cols { margin-top: 10px; }
+      .doc .aside-facts { margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--rule-color); }
+      @media (width >= 64rem) { .doc .aside-facts { margin-top: 34px; padding-top: 0; border-top: 0; } }
+      .em { font-family: var(--font-serif); font-style: italic; font-size: var(--step-1); color: var(--fg-muted); }
+      .foot { margin-top: 40px; padding-top: 16px; border-top: 1.5px solid var(--fg); display: grid; gap: 12px; }
+      @media (width >= 40rem) { .foot { grid-template-columns: 1fr 1fr; } .foot .next { text-align: right; } }
+      .foot a { display: inline-flex; flex-direction: column; min-height: 44px; justify-content: center; color: var(--fg); text-decoration: none; }
+      .foot a .k { font: 700 var(--step--2) / 1.3 var(--font-mono); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--fg-muted); }
+      .foot a b { font: 600 var(--step-1) / 1.2 var(--font-display); }
+      .cta { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; margin-top: 18px; }
+      .cta a { min-height: 44px; display: inline-flex; align-items: center; color: var(--fg); font-weight: 600; }
+      .slip { background: var(--surface); padding: 6px 12px; font-weight: 600; font-size: 14px; box-shadow: 0 2px 3px -1px rgb(30 40 35 / 0.2); rotate: -1.5deg; }
+      .hdr .nav a { color: inherit; text-decoration: none; }
+      .hdr .nav .on { border-bottom: 2.5px solid var(--fg); }
+      .hdr .slip { display: none; }
+      @media (width >= 64rem) { .hdr .slip { display: block; margin-right: 10px; } .hdr .nav { margin-right: 10px; } }
+      .row-label { margin: 72px 0 14px; }
+      .notes { max-width: 35rem; margin: 48px auto 0; display: grid; gap: 10px; }
+      .notes h2 { font-size: var(--step-0); }
+    </style>
+  </head>
+  <body>
+    <header class="hdr">
+      <span>TL</span>
+      <nav class="nav"><span class="wide">About</span><span class="wide on">Work</span><span class="wide">Journey</span><span class="wide">Diary</span><span class="wide">Contact</span><span class="narrow">Menu</span><span>☼</span></nav>
+      <span class="slip">Résumé <span class="data muted">PDF</span></span>
+      <span class="stamp">Let's talk</span>
+    </header>
+
+    <main class="shell">
+      <div class="doc">
+        <span class="pin" style="left: -32px; top: 6px">1</span>
+        <a class="back" href="#">← The four case studies</a>
+
+        <article class="paper" data-paper>
+          <div class="block"><div><span class="k">Project</span>DoorDash, Inc. · Software Engineer · October 2025 — Present</div><div><span class="k">Sheet</span>1 of 4</div></div>
+          <div class="inner">
+            <span class="pin" style="right: -14px; top: 64px">2</span>
+            <h1 class="page-title">The one-hour feasibility question</h1>
+            <p class="lead">A multi-strategy agent workflow that tells whether a retailer's public catalog can support an integration in under an hour, not days.</p>
+
+            <div class="cols">
+              <div class="prose">
+                <h2 class="k">The problem</h2>
+                <p>Deciding whether a retailer could be onboarded meant a slow, manual investigation of their public storefront: what data exists, where it lives, how it's served, and whether it can be collected reliably enough to keep a live integration accurate. Every retailer was a fresh start, and the answer arrived late enough to threaten launch dates.</p>
+                <p>The assessment sat on the critical path. A retailer we couldn't evaluate quickly was a retailer we couldn't commit to, and the half-year onboarding targets were built out of those commitments.</p>
+                <p><span class="em">The assumption I broke:</span> that this was irreducibly manual senior-engineer judgement — or work you outsourced to a specialist scraping vendor.</p>
+
+                <h2 class="k">What made it hard</h2>
+                <ul>
+                  <li>Under an hour per retailer, end to end, or it doesn't change the decision timeline.</li>
+                  <li>Public surfaces only, within the scope of a prospective retail partnership.</li>
+                  <li>The output has to be trustworthy enough to commit a launch date to — a confident wrong answer is worse than a slow one.</li>
+                  <li>Every retailer is architecturally different; no single strategy generalises.</li>
+                </ul>
+
+                <h2 class="k">My calls</h2>
+                <ul>
+                  <li>Run several independent strategies in parallel rather than one 'correct' pipeline — static source analysis, network/API surface analysis, sitemap and robots.txt reading, and real-browser observation each see things the others miss.</li>
+                  <li>Drive a real Chrome session through Playwright rather than only issuing bare requests, so the workflow observes what the site actually does — which calls fire, in what order, and what triggers them.</li>
+                  <li>Treat the site's own structure as the specification: derive endpoint shapes, parameters, pagination behaviour and rate limits from observation rather than assuming a standard.</li>
+                  <li>Make the deliverable a feasibility judgement with its reasoning attached, not a raw dump. A human has to be able to disagree with it.</li>
+                  <li>Keep the destructive-adjacent parts human-gated: the workflow investigates and reports, it doesn't unilaterally start collecting at scale.</li>
+                </ul>
+
+                <h2 class="k">What I tried first</h2>
+                <ul>
+                  <li>A single general-purpose crawler — too shallow; it found pages but not the data-serving mechanics behind them.</li>
+                  <li>Pure request-level analysis without a browser — missed everything driven by client-side execution and event timing.</li>
+                  <li>Static source inspection alone — surfaced embedded data on some sites, nothing on others.</li>
+                  <li>Combining all of the above as parallel agents with a synthesis step — this is what worked.</li>
+                </ul>
+                <p style="margin-top: 12px"><span class="em">What failed:</span> early single-strategy versions produced confident conclusions from partial evidence. A site whose catalog was served through client-side calls would be scored as thin because the first pass never saw those calls fire.</p>
+                <p><span class="em">The lesson:</span> one strategy's blind spot reads exactly like an absence of data. Cross-checking independent strategies against each other is what turns 'I found nothing' into 'there is nothing' — and those are very different answers to hand a stakeholder.</p>
+
+                <h2 class="k">What I built</h2>
+                <ul>
+                  <li>A dynamic multi-agent workflow that investigates a retailer site through several independent strategies and reconciles the findings.</li>
+                  <li>Real-browser observation via Playwright to capture how and when a site's data calls are actually triggered.</li>
+                  <li>Structural analysis of robots.txt, sitemaps and page source, including data embedded in the source itself.</li>
+                  <li>A synthesis step producing a feasibility judgement with its supporting evidence attached.</li>
+                </ul>
+                <div class="flow" style="position: relative">
+                  <span class="pin" style="left: -32px; top: 0">3</span>
+                  <div class="before">
+                    <span class="label">Before — manual investigation</span>
+                    <ol>
+                      <li>Engineer opens the site by hand</li>
+                      <li>Clicks through, reads source, guesses at structure</li>
+                      <li>Writes a throwaway probe script</li>
+                      <li>Repeats per retailer, from scratch<small>days of elapsed time</small></li>
+                      <li>Feasibility answered late, or outsourced</li>
+                    </ol>
+                  </div>
+                  <div class="after">
+                    <span class="label">After — parallel strategies, one hour</span>
+                    <ol>
+                      <li>Point the workflow at the retailer</li>
+                      <li>Strategies run in parallel<div class="fan"><span>source</span><span>network</span><span>sitemap</span><span>real browser</span></div></li>
+                      <li>Findings cross-checked against each other</li>
+                      <li>Feasibility judgement with evidence attached<small>&lt; 1 hour</small></li>
+                      <li>Human reviews and commits the launch decision</li>
+                    </ol>
+                  </div>
+                </div>
+
+                <h2 class="k">The proof</h2>
+                <div class="ledger" style="position: relative">
+                  <span class="pin" style="left: -32px; top: 6px">4</span>
+                  <div>
+                    <span class="what">Time to a feasibility answer</span>
+                    <span><span class="was">Days of manual investigation</span><br /><span class="now">Under 1 hour, end to end</span></span>
+                    <span class="src">Recorded benchmark — DoorDash retailer feasibility workflow</span>
+                  </div>
+                </div>
+                <ul style="margin-top: 14px">
+                  <li>A full retailer assessment completes in under an hour — a recorded benchmark, against days of manual investigation before.</li>
+                  <li>Multiple retail partners assessed and brought live on the platform.</li>
+                  <li>Contributed to closing out the half-year retail onboarding goal.</li>
+                  <li>Adopted by the team as the basis for internal collection tooling, reducing reliance on external scraping vendors.</li>
+                </ul>
+
+                <h2 class="k">What I learned</h2>
+                <p>The valuable output was never the data — it was a defensible answer to 'can we commit to this?' delivered while the answer still mattered. Speed changed what the question was for.</p>
+
+                <h2 class="k">What I'd ask next</h2>
+                <p>How much of the feasibility judgement can be made continuously rather than once? A retailer that was viable in January may not be in June, and nobody currently finds out until something breaks.</p>
+              </div>
+
+              <aside class="aside-facts">
+                <dl class="facts">
+                  <div><dt>Role</dt><dd>Software Engineer</dd></div>
+                  <div><dt>Where</dt><dd>DoorDash, Inc.</dd></div>
+                  <div><dt>When</dt><dd>October 2025 — Present</dd></div>
+                  <div><dt>Built with</dt><dd>Python · Playwright · Multi-agent workflows · HTTP / API analysis · Claude Code</dd></div>
+                  <div><dt>On the oak</dt><dd class="accent">2 → 25 onboarded merchants/month</dd></div>
+                  <div><dt>Note</dt><dd>This work is internal to DoorDash, so there is no public demo or source link.</dd></div>
+                </dl>
+              </aside>
+            </div>
+
+            <nav class="foot" aria-label="Case studies">
+              <a href="#"><span class="k">← Sheet 4 of 4</span><b>Taking the setup sheet off paper</b></a>
+              <a class="next" href="#"><span class="k">Sheet 2 of 4 →</span><b>Thirty scrapers in a week</b></a>
+            </nav>
+            <div class="cta"><a href="#">Send me a postcard</a><a href="#">Résumé <span class="data muted">&nbsp;PDF</span></a></div>
+          </div>
+        </article>
+
+        <!-- A second frame: the scraper's proof, where the numbers are many. -->
+        <p class="label row-label">/work/dd-scraper-platform · the proof, where there are five figures</p>
+        <article class="paper" data-paper style="padding: 24px 20px">
+          <span class="pin" style="left: -32px; top: 16px">5</span>
+          <h2 class="k" style="margin-top: 0">The proof</h2>
+          <div class="ledger">
+            <div><span class="what">Legacy scraper runtime</span><span><span class="was">17 hours</span><br /><span class="now">3 minutes</span></span><span class="src">Résumé, September 2026 revision — DoorDash, Software Engineer</span></div>
+            <div><span class="what">Product coverage</span><span><span class="was">654 products</span><br /><span class="now">1,529 products</span></span><span class="src">Résumé, September 2026 revision — DoorDash, Software Engineer</span></div>
+            <div><span class="what">Scraper failure rate</span><span><span class="was">3.9%</span><br /><span class="now">Zero</span></span><span class="src">Résumé, September 2026 revision — DoorDash, Software Engineer</span></div>
+            <div><span class="what">Production scrapers delivered</span><span><span class="was">Built individually</span><br /><span class="now">30+ in a single week</span></span><span class="src">Résumé, September 2026 revision — DoorDash, Software Engineer</span></div>
+            <div><span class="what">Sales restored</span><span><span class="was">SKUs lost to a manual eight-stage process</span><br /><span class="now">$2.8M cumulative GOV</span></span><span class="src">Résumé, September 2026 revision — DoorDash, Software Engineer</span></div>
+          </div>
+          <div class="bars" aria-hidden="true">
+            <span class="label" style="margin-top: 8px">One catalog scraper's runtime (the Diary's figure, to scale)</span>
+            <span>17 hours</span><div class="bar"></div>
+            <span>3 minutes</span><div class="bar after"></div>
+          </div>
+        </article>
+
+        <div class="notes">
+          <h2>What the pins say</h2>
+          <p><b>1.</b> The header marks Work as where you are; every nav link goes home (<code>/#…</code>). "← The four case studies" goes to <code>/#work</code>. The Résumé slip is the header's new fourth paper (hero board).</p>
+          <p><b>2.</b> The bench's paper at full length: the pad's title block (project, role, dates from the career entry; "Sheet 1 of 4"), the title in the Page title role, the tagline as the lead and the page's description (trimmed to ≤ 160 characters). The prose stays at 65ch; from 1024 the facts sit beside it and stay in view. Below it they follow the lead.</p>
+          <p><b>3.</b> The before/after workflow, drawn from the project's own <code>workflow</code> (only this one has one): steps as boxes, the parallel strategies fanned out. HTML and CSS, no drawing library. Side by side from 640, stacked below.</p>
+          <p><b>4.</b> The proof as a ledger from <code>metrics</code>: what, before (muted), after (<code>--accent</code> mono), and its source. The proof sentences follow.</p>
+          <p><b>5.</b> Where a figure is a ratio this big, it is drawn to scale too: the Diary already holds the runtime as numbers (1,020 minutes against 3), so the 3-minute bar is a sliver. Only where the content has the numbers; nothing is estimated.</p>
+          <p>Footer: the previous and next sheet (the four in a ring), then "Send me a postcard" (<code>/#contact</code>) and the résumé. Prints in flow. No section ids on this page, so the cats' tour stays home.</p>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

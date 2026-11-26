@@ -9,6 +9,8 @@ import {
   NAME_MAX,
   PHONE_MAX,
   PHONE_PATTERN,
+  NOTE_MAX,
+  NOTE_TEXT,
   SINGLE_LINE,
   type Lead,
 } from "@/lib/contact";
@@ -37,7 +39,7 @@ import { SentImpression, stampDate, useSetStamp } from "./SentStamp";
  * pair.
  */
 
-type FieldName = "name" | "email" | "phone";
+type FieldName = "name" | "email" | "phone" | "note";
 type FieldErrors = Partial<Record<FieldName, string>>;
 type Status = "idle" | "success" | "offline" | "failed" | "rate-limited" | { error: string };
 
@@ -51,7 +53,7 @@ interface ApiPayload {
   fieldErrors?: FieldErrors;
 }
 
-const ORDER: readonly FieldName[] = ["name", "email", "phone"];
+const ORDER: readonly FieldName[] = ["name", "email", "phone", "note"];
 /** Counted, and in my voice: the email-or-phone error is one problem, said
  *  once, however many fields it marks. */
 function fixFields(errors: FieldErrors): string {
@@ -81,6 +83,8 @@ function check(lead: Required<Lead>, emailMalformed: boolean): FieldErrors {
   if (lead.email && emailMalformed) errors.email = LEAD_ERRORS.email;
   if (lead.phone && !PHONE_PATTERN.test(lead.phone)) errors.phone = LEAD_ERRORS.phone;
   if (!lead.email && !lead.phone) errors.email = errors.phone = LEAD_ERRORS.pair;
+  if (lead.note.length > NOTE_MAX) errors.note = LEAD_ERRORS.noteTooLong;
+  else if (!NOTE_TEXT.test(lead.note)) errors.note = LEAD_ERRORS.noteText;
   return errors;
 }
 
@@ -98,7 +102,7 @@ interface LeadFormProps {
 }
 
 export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
-  const [values, setValues] = useState({ name: "", email: "", phone: "", website: "" });
+  const [values, setValues] = useState({ name: "", email: "", phone: "", note: "", website: "" });
   const [errors, setErrors] = useState<FieldErrors>({});
   const [status, setStatus] = useState<Status>("idle");
   const [submitting, setSubmitting] = useState(false);
@@ -106,7 +110,12 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
   const [sentOn, setSentOn] = useState<string | null>(null);
   const [thanked, setThanked] = useState(false);
   const setPictureStamp = useSetStamp();
-  const refs = { name: useRef<HTMLInputElement>(null), email: useRef<HTMLInputElement>(null), phone: useRef<HTMLInputElement>(null) };
+  const refs = {
+    name: useRef<HTMLInputElement>(null),
+    email: useRef<HTMLInputElement>(null),
+    phone: useRef<HTMLInputElement>(null),
+    note: useRef<HTMLTextAreaElement>(null),
+  };
   const statusRef = useRef<HTMLParagraphElement>(null);
 
   // Success clears the fields; focus goes to the line that confirms it.
@@ -138,7 +147,7 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
     event.preventDefault();
     if (submitting) return;
 
-    const trimmed = { name: values.name.trim(), email: values.email.trim(), phone: values.phone.trim() };
+    const trimmed = { name: values.name.trim(), email: values.email.trim(), phone: values.phone.trim(), note: values.note.trim() };
     const fieldErrors = check(trimmed, refs.email.current?.validity.typeMismatch ?? false);
     if (ORDER.some((field) => fieldErrors[field])) return showErrors(fieldErrors);
     setErrors({});
@@ -159,7 +168,7 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
       const payload = (await response.json().catch(() => null)) as ApiPayload | null;
 
       if (response.ok && payload?.ok === true) {
-        setValues({ name: "", email: "", phone: "", website: "" });
+        setValues({ name: "", email: "", phone: "", note: "", website: "" });
         setSentOn(stampDate());
         setThanked(payload.thanked === true);
         setStatus("success");
@@ -193,7 +202,7 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
           : "";
   const error = typeof status === "object" ? status.error : fault;
 
-  const input = (field: FieldName, label: string, props: { type: string; autoComplete: string; maxLength: number }) => (
+  const input = (field: Exclude<FieldName, "note">, label: string, props: { type: string; autoComplete: string; maxLength: number }) => (
     <div className="flex flex-col gap-0.5">
       <label htmlFor={`lead-${field}`} className="font-mono text-[12.5px] text-fg-muted">
         {label}
@@ -259,6 +268,31 @@ export default function LeadForm({ emailDeliveryConfigured }: LeadFormProps) {
             {contactCopy.pairNote}
           </p>
           {pairError ? <ErrorLine id="lead-pair-error">{pairError}</ErrorLine> : null}
+        </div>
+
+        {/* The optional note (round 32), written on ruled lines like a
+            postcard's back. No `*`: it is not needed. It reaches my inbox and
+            nowhere else; the thank-you never repeats it. */}
+        <div className="mt-2 flex flex-col gap-0.5">
+          <label htmlFor="lead-note" className="font-mono text-[12.5px] text-fg-muted">
+            {contactCopy.fields.note}
+          </label>
+          <textarea
+            ref={refs.note}
+            id="lead-note"
+            name="note"
+            rows={3}
+            maxLength={NOTE_MAX}
+            value={values.note}
+            onChange={(e) => setValues((v) => ({ ...v, note: e.target.value }))}
+            aria-invalid={errors.note ? "true" : undefined}
+            aria-describedby={errors.note ? "lead-note-hint lead-note-error" : "lead-note-hint"}
+            className="lead-note w-full min-w-0 resize-y border-0 bg-transparent px-0.5 text-[16px] text-fg aria-invalid:[--rule-ink:var(--mark)]"
+          />
+          <p id="lead-note-hint" className="font-serif text-[length:var(--step--1)] leading-snug text-fg-muted italic">
+            {contactCopy.noteHint}
+          </p>
+          {errors.note ? <ErrorLine id="lead-note-error">{errors.note}</ErrorLine> : null}
         </div>
       </div>
 

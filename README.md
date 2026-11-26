@@ -9,8 +9,9 @@ workflow that took merchants from 2 to 25 a month. Before that I was a chef in
 my family's restaurant.
 
 This repository is my site, **[thienle.vercel.app](https://thienle.vercel.app)**:
-one page in four sections (About, the Journey, the Diary and Contact), a
-morning paddy by day and a dusk with a lit lantern by night.
+one page in five sections (About, Work, the Journey, the Diary and Contact), a
+morning paddy by day and a dusk with a lit lantern by night. Each case
+study in Work is also a page of its own, `/work/<id>`.
 [Résumé (PDF)](https://thienle.vercel.app/thien-le-resume.pdf) ·
 [LinkedIn](https://www.linkedin.com/in/thienle210303)
 

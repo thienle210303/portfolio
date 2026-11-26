@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { contactCopy, profile } from "../src/content/portfolio";
+import { oncePerEngine } from "./once";
 
 /**
  * Contact (round 21): my business card clipped beside a postcard whose
@@ -175,13 +176,14 @@ test("the postcard is the form: always there, nothing to turn over", async ({ pa
   await expect(page.locator("#contact").getByRole("button", { name: /Let me reach you|^Back$/ })).toHaveCount(0);
 });
 
-test("Tab runs from the postcard into my card, in reading order", async ({ page }) => {
+test("Tab runs from the postcard into my card, in reading order", async ({ page, browserName }) => {
+  test.fixme(browserName === "webkit", "WebKit on macOS moves Tab to links only with Option+Tab (Full Keyboard Access off)");
   // Round 22: the postcard leads at every width, so its form comes first.
   onlyAt(page, WIDTHS);
   await open(page);
   await postcard(page).locator("input[name=name]").focus();
   const order: string[] = [];
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i < 5; i += 1) {
     await page.keyboard.press("Tab");
     order.push(
       await page.evaluate(() => {
@@ -191,7 +193,8 @@ test("Tab runs from the postcard into my card, in reading order", async ({ page 
       }),
     );
   }
-  expect(order).toEqual(["email", "phone", contactCopy.send, `card:mailto:${profile.email}`]);
+  // Round 32: the optional note comes after the email-or-phone pair.
+  expect(order).toEqual(["email", "phone", "note", contactCopy.send, `card:mailto:${profile.email}`]);
 });
 
 test("email-only lead posts and shows success", async ({ page }) => {
@@ -256,7 +259,9 @@ test("neither shows the paired error", async ({ page }) => {
   expect(bodies).toEqual([]);
 });
 
-test("when it cannot send, it says so, offers my address to copy, and never opens the mail app", async ({ page }) => {
+test("when it cannot send, it says so, offers my address to copy, and never opens the mail app", async ({ page, browserName }) => {
+  // The mail-app check watches navigations over the DevTools protocol, which is Chromium's.
+  test.skip(browserName !== "chromium", "watched over CDP, Chromium only");
   onlyAt(page, WIDTHS);
   await open(page);
   // A posting build is pushed there by the server's own answer.
@@ -477,7 +482,7 @@ test("the honeypot is present and not reachable by Tab", async ({ page }) => {
 });
 
 test("the night lanterns are lit and the day's silk is not fetched at night", async ({ browser }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium-1440", "runs at 1440 px");
+  test.skip(!oncePerEngine(testInfo), "runs at 1440 px");
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: "dark" });
   const page = await context.newPage();
   const fetched: string[] = [];

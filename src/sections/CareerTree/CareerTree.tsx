@@ -61,7 +61,7 @@ export default function CareerTree() {
           `#journey` lands on the section of that name; `#skills`/`#workshop`
           have no successor of their own, and the Journey is the nearest honest
           answer for a visitor arriving on a dead id, which beats a silent
-          no-op. `#work` lands on the Record, where the case studies are.
+          no-op. `#work` is the Work section's own id again (round 32).
 
           Real, zero-size elements rather than a client-side hash rewrite: this
           way the landing works with no JavaScript at all, which

@@ -282,7 +282,10 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
                       href={`/#${item.sectionId}`}
                       aria-current={isActive ? "true" : undefined}
                       onClick={handleNavLinkClick(item.sectionId)}
-                      className="group grid min-h-[4.75rem] grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-x-4 py-2"
+                      // Five stops since round 32: on a phone a stop is 56px
+                      // (still over the 44px target), so the slips below the
+                      // trail stay on a 320x568 screen.
+                      className="group grid min-h-[3.5rem] grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-x-4 py-1.5 sm:min-h-[4.75rem] sm:py-2"
                     >
                       <span
                         aria-hidden="true"
@@ -300,7 +303,7 @@ export default function SiteNav({ facts }: { readonly facts: Readonly<Record<str
                         </span>
                         <span
                           className={cn(
-                            "block font-display text-[length:var(--step-3)] leading-[1.1] font-semibold tracking-[-0.02em] transition-colors duration-150",
+                            "block font-display text-[length:var(--step-2)] leading-[1.1] font-semibold tracking-[-0.02em] transition-colors duration-150 sm:text-[length:var(--step-3)]",
                             isActive ? "text-fg" : "text-fg-muted group-hover:text-fg",
                           )}
                         >

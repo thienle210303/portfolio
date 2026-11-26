@@ -52,6 +52,22 @@ describe("/api/contact", () => {
     });
   });
 
+  it("puts an optional note in my copy, as plain text under the lead (round 32)", async () => {
+    const res = await POST(post({ name: "Jo", email: "j@example.com", note: "  Hiring for a data role.\nCan we talk?  " }));
+    expect(res.status).toBe(200);
+    expect(send.mock.calls[0][0].text).toBe("Name: Jo\nEmail: j@example.com\n\nNote:\nHiring for a data role.\nCan we talk?");
+  });
+
+  it("refuses a note too long or not plain text, as a note error", async () => {
+    for (const note of ["x".repeat(1001), "bell\u0007"]) {
+      const res = await POST(post({ name: "Jo", email: "j@example.com", note }));
+      expect(res.status, note.slice(0, 10)).toBe(400);
+      const body = await res.json();
+      expect(Object.keys(body.fieldErrors)).toEqual(["note"]);
+    }
+    expect(send).not.toHaveBeenCalled();
+  });
+
   it("phone-only sends without replyTo", async () => {
     const res = await POST(post({ name: "Jo", phone: "+1 555 010 9999" }));
     expect(res.status).toBe(200);
@@ -143,7 +159,7 @@ describe("/api/contact", () => {
 
     it("never repeats anything the visitor typed, not even their name", async () => {
       vi.stubEnv("CONTACT_REPLY_FROM", "hello@mydomain.test");
-      await POST(post(VISITOR));
+      await POST(post({ ...VISITOR, note: "Quux Zebulon wrote this note" }));
       const { to, ...message } = send.mock.calls[1][0];
       expect(to).toBe(VISITOR.email);
       const written = JSON.stringify(message).toLowerCase();

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { oncePerEngine } from "./once";
 
 /**
  * Round 25: nothing meant to be read is cut off.
@@ -124,7 +125,7 @@ async function findCroppedText(page: Page): Promise<Cropped[]> {
 for (const theme of ["day", "night"] as const) {
   for (const width of WIDTHS) {
     test(`no text is cut off at ${width} (${theme})`, async ({ page }, testInfo) => {
-      test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+      test.skip(!oncePerEngine(testInfo), "pins its own viewports; run once");
       // The cats wander on a fine pointer and are not part of this question.
       await page.addInitScript((value) => {
         try {

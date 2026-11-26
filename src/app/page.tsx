@@ -1,5 +1,6 @@
 import Hero from "@/sections/Hero/Hero";
 import CareerTree from "@/sections/CareerTree/CareerTree";
+import Work from "@/sections/Work/Work";
 import Record from "@/sections/Record/Record";
 import Contact from "@/sections/Contact/Contact";
 import { askLiveModeConfigured } from "@/lib/ask-live-config";
@@ -28,34 +29,30 @@ export default function Home() {
   return (
     <>
       {/*
-        Four sections, in the order a visitor needs them: who I am, where I
-        have been, everything I have done, how to reach me. The Record (round
-        21 phase 5) holds the full history: every entry by year, with the rows
-        and case studies that used to close the Journey.
+        Five sections, in the order a visitor needs them: who I am, what I
+        built, where I have been, everything I have done, how to reach me.
+
+        Work (round 32) is the case studies, right after About and shown, not
+        told: each a sheet with a drawing made from its own numbers, the whole
+        story on /work/<id>. Round 18 had taken Selected Work away and round 23
+        hid the case studies inside the Diary; an outside audit and Thien
+        brought them back ("I want to show case instead of bunch of text").
 
         Worlds (the globe) left the page in round 21; `#worlds` still lands on
-        About (src/sections/Hero/anchors.ts).
+        About (src/sections/Hero/anchors.ts). Skills as a section is gone, not
+        the skills: `skillCategories` is still content, still in the answer
+        corpus. There is deliberately no résumé section either; the résumé is
+        the PDF (/resume, the business card, the header's slip).
 
-        Round 18 took the page from six sections to four. Selected Work and
-        Skills are gone because nothing needs them any more: the case studies
-        render inside the rows of the roles that produced them, on the
-        Record.
-        Skills as a section is gone, not the skills — `skillCategories` is
-        still content, still rendered by /resume and still in the answer
-        corpus.
-
-        There is deliberately no résumé section either. It was a second
-        telling of this same page. The résumé lives at /resume as a view to
-        read or download, which is what a résumé is.
-
-        The Journey (`#tree`) follows About: the work as it grew. The Record
-        (`#record`) follows it with the whole history, and is the last thing to
-        read before being asked to get in touch.
+        The Journey (`#tree`) follows Work: the work as it grew. The Diary
+        (`#record`) follows it with the whole history, and is the last thing
+        to read before being asked to get in touch.
 
         `navItems` in src/content/portfolio.ts must stay in this order: the nav
         doubles as the page's table of contents.
       */}
       <Hero bookingUrl={bookingUrl} />
+      <Work />
       <CareerTree />
       <Record />
       <Contact

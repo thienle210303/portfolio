@@ -10,8 +10,9 @@ the sources win; the house taste and the tools' division of labour are in
 - Genre: atmospheric, hand-drawn. One painted sky over a lichen ground; real
   objects from my life carry the content (clothesline tags, a live oak, a
   notebook spread, a postcard, stamps).
-- Shape: one narrative page in four sections — About `#about`, Journey
-  `#tree`, Diary `#record`, Contact `#contact`. Order and content:
+- Shape: one narrative page in five sections — About `#about`, Work `#work`
+  (round 32: the case studies, shown as drawings, each whole on `/work/<id>`),
+  Journey `#tree`, Diary `#record`, Contact `#contact`. Order and content:
   [CLAUDE.md § Changing what the site says](CLAUDE.md#changing-what-the-site-says).
 - Theme: custom. Two axes that stay independent — **theme** (`day` | `night`,
   the visitor's) and **tone** (`base` | `deep` | `contrast`, per `<Section>`).

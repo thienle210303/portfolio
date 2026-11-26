@@ -64,19 +64,12 @@
  */
 export const LEGACY_SECTION_IDS = ["journey", "skills", "workshop"] as const;
 
-/**
- * Retired section ids the Diary answers (round 21 phase 5, round 23). `#work`
- * named Selected Work, the case studies; they are gone from the page, so the
- * id lands on DoorDash's page (`RECORD_WORK_ENTRY_ID`), where the case studies
- * mostly were. `#journey`, `#skills` and `#workshop` stay on the Journey: the
- * section of that name, and the nearest honest answer for the two that have
- * no successor. Same contract as `LEGACY_SECTION_IDS`, except that the span
- * sits on that page rather than at the section's top.
+/*
+ * `#work` was a retired id from round 18 to round 31, parked on DoorDash's
+ * Diary page. Round 32 brought Work back as a section, so `#work` is that
+ * section's own id again, and each featured case study's `work-<id>` is its
+ * sheet there (`src/sections/Work/Work.tsx`).
  */
-export const RECORD_LEGACY_SECTION_IDS = ["work"] as const;
-
-/** The career entry whose page `#work` lands on. */
-export const RECORD_WORK_ENTRY_ID = "doordash";
 
 /**
  * Other names for the Record section itself (round 23): the section was
@@ -99,17 +92,18 @@ export function journeyEntryAnchorId(entryId: string): string {
 /*
  * The two identifiers a case-study article and anything linking at it have to
  * agree on. They moved here from `SelectedWork/anchors.ts` in round 18 along
- * with `CaseStudy.tsx` itself, which round 23 deleted: the case studies are
- * not on the page any more, and each id is a zero-height anchor on the page of
- * the entry the project was built in.
+ * with `CaseStudy.tsx` itself, which round 23 deleted. Round 32 shows the
+ * featured ones again: each is a sheet in the Work section with this id; a
+ * project that is not featured keeps a zero-height anchor on the Diary page
+ * of the entry it was built in.
  *
  * Derived from `project.id`, never authored: a project added to or removed
  * from `projects` renumbers everything without anyone editing a list.
  */
 
 /**
- * Anchor id for a project's retired case study: a zero-height anchor on the page
- * of the entry it was built in.
+ * Anchor id for a project's case study: its sheet in the Work section when it
+ * is featured, else a zero-height anchor on the Diary page of its entry.
  *
  * Deliberately not `case-study-${id}`, which `Disclosure` once derived
  * `-trigger` and `-panel` ids from inside every case study: two id namespaces

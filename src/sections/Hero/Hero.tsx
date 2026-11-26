@@ -37,7 +37,7 @@ import { journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
 import { ABOUT_LEGACY_SECTION_IDS } from "./anchors";
 import ChapterTags from "./ChapterTags";
 import FieldTag from "./FieldTag";
-import HeroIdentity from "./HeroIdentity";
+import HeroIdentity, { NameLine } from "./HeroIdentity";
 import { HUNG, PHONE, TABLET, WIDE, hangVars, lineFloor } from "./line";
 import Scenery from "./Scenery";
 import Yard from "./Yard";
@@ -76,6 +76,8 @@ export default function Hero({ bookingUrl }: { readonly bookingUrl: string | nul
 
       <div className="hero-yard" style={WORDS_TOP}>
         <Yard />
+
+        <NameLine yard className="max-lg:hidden" />
 
         <div data-yard="words" className="min-w-0">
           <HeroIdentity headingId={HEADING_ID} bookingUrl={bookingUrl} />

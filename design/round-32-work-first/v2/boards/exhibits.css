@@ -1,0 +1,379 @@
+/*
+ * Round 32 v2: the work shown, not told (Thien, 2026-11-22: "I want to show
+ * case instead of bunch of text… Nobody is read it").
+ *
+ * Every drawing is computed from a number already in the content file:
+ * 17 hours against 3 minutes (the Diary's figure, 1,020 against 3), 654 and
+ * 1,529 products, 3.9% failures, 30+ scrapers in a week, 3,000,000+ records,
+ * throughput 100 against 196. The words on an exhibit are a title, one
+ * number and a caption. Motion tells it; under reduced motion everything is
+ * at its end state, which says the same thing.
+ *
+ * Colour: ink is --fg, a "before" is --fg-muted, an "after" is --accent (a
+ * measured value). No --mark: the hero's ticket and Contact's stamp keep it.
+ */
+
+.ex-grid {
+  display: grid;
+  gap: 34px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+@media (width >= 40rem) {
+  .ex-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 44px 28px;
+  }
+}
+
+.ex {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.ex .body {
+  display: grid;
+  gap: 12px;
+  padding: 16px 20px 18px;
+}
+.ex h3 {
+  font: 600 var(--step-2) / 1.15 var(--font-display);
+  letter-spacing: var(--tracking-display);
+}
+.ex h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+.ex h3 a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.ex .big {
+  font: 700 var(--step-4) / 1 var(--font-mono);
+  color: var(--accent);
+  letter-spacing: -0.03em;
+}
+.ex .big small {
+  font-size: var(--step--1);
+  letter-spacing: 0;
+  color: var(--fg-muted);
+}
+.ex .cap {
+  font: 400 var(--step--1) / 1.35 var(--font-mono);
+  color: var(--fg-muted);
+}
+.ex .go {
+  font: 600 var(--step--1) / 1 var(--font-sans);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.draw {
+  font: 400 12px / 1.35 var(--font-mono);
+  color: var(--fg-muted);
+}
+
+/* ---- The race: two runtimes to scale ---- */
+.race {
+  display: grid;
+  gap: 10px;
+}
+.race .lane {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr 3.5rem;
+  align-items: center;
+  gap: 10px;
+}
+.race .track {
+  position: relative;
+  height: 16px;
+  border-bottom: 1px dashed var(--rule-color);
+}
+.race .bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--fg-muted);
+  transform-origin: 0 50%;
+  animation: grow var(--run, 6s) linear both;
+}
+.race .bar.after {
+  background: var(--accent);
+  width: max(3px, calc(3 / 1020 * 100%));
+  --run: 0.25s;
+}
+.race .t {
+  font-weight: 700;
+  color: var(--fg);
+  text-align: right;
+}
+.race .t.after {
+  color: var(--accent);
+}
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* ---- Tally: thirty scrapers in one week ---- */
+.tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+.tally svg {
+  width: 34px;
+  height: 26px;
+  stroke: var(--fg);
+  stroke-width: 2;
+  stroke-linecap: round;
+  fill: none;
+  animation: land 0.3s var(--ease-ink) both;
+  animation-delay: calc(var(--i) * 0.18s);
+}
+@keyframes land {
+  from {
+    transform: translateY(-6px) scale(0.6);
+  }
+}
+
+/* ---- Agents: four strategies in parallel, cross-checked ---- */
+.agents {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.agents .node {
+  padding: 6px 8px;
+  border: 1.5px solid var(--fg);
+  border-radius: 2px;
+  color: var(--fg);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.agents .verdict {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  rotate: -4deg;
+  animation: stamp 0.35s var(--ease-ink) both 1.9s;
+}
+@keyframes stamp {
+  from {
+    scale: 1.6;
+    opacity: 0;
+  }
+}
+.agents .lanes {
+  display: grid;
+  gap: 7px;
+}
+.agents .lane {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 18px;
+}
+.agents .lane::before {
+  content: "";
+  flex: 1;
+  border-top: 1.5px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.agents .lane span {
+  order: -1;
+  width: 4.6rem;
+  text-align: right;
+}
+.agents .lane i {
+  position: absolute;
+  left: calc(100% - 9px);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: run 1.6s var(--ease-ink) both;
+}
+@keyframes run {
+  from {
+    left: 5rem;
+  }
+}
+.days {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.days span {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--fg-muted);
+  border-radius: 2px;
+  background: linear-gradient(to top right, transparent calc(50% - 1px), var(--fg-muted) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
+}
+
+/* ---- Breadth-first: rings of a product–seller network ---- */
+.bfs {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+.bfs svg {
+  width: 150px;
+  height: 150px;
+}
+.bfs line {
+  stroke: color-mix(in srgb, var(--fg-muted) 55%, transparent);
+  stroke-width: 1;
+}
+.bfs circle {
+  fill: var(--accent);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pop 0.3s var(--ease-ink) both;
+  animation-delay: calc(var(--ring) * 0.45s);
+}
+.bfs circle.seed {
+  fill: var(--fg);
+}
+@keyframes pop {
+  from {
+    scale: 0;
+  }
+}
+.okbar {
+  position: relative;
+  height: 12px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+.okbar::after {
+  /* the 0.1%: drawn as the thinnest notch the screen can show */
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--surface);
+}
+
+/* ---- Paper to app, and throughput to scale ---- */
+.offpaper {
+  display: grid;
+  grid-template-columns: 90px auto 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.stack {
+  position: relative;
+  height: 86px;
+}
+.stack span {
+  position: absolute;
+  inset: 0 8px 8px 0;
+  border: 1.5px solid var(--fg-muted);
+  background: var(--surface);
+  border-radius: 1px;
+  rotate: var(--r);
+}
+.stack span::after {
+  content: "";
+  position: absolute;
+  inset: 12px 10px auto;
+  height: 30px;
+  background: repeating-linear-gradient(180deg, var(--rule-color) 0 1px, transparent 1px 7px);
+}
+.app {
+  display: grid;
+  gap: 4px;
+}
+.app span {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 7px;
+  border: 1px solid var(--rule-color);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--fg);
+  animation: slot 0.3s var(--ease-ink) both;
+  animation-delay: calc(0.4s + var(--i) * 0.2s);
+}
+.app span:first-child {
+  border-color: var(--accent);
+}
+@keyframes slot {
+  from {
+    transform: translateX(-18px);
+  }
+}
+.thru {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+.thru .lane {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.thru .bar {
+  height: 14px;
+  background: var(--fg-muted);
+  transform-origin: 0 50%;
+  animation: grow 0.9s var(--ease-ink) both;
+}
+.thru .bar.after {
+  background: var(--accent);
+}
+
+/* ---- Dots: products, one dot for ten ---- */
+.dots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 9px);
+  gap: 3px;
+}
+.dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+}
+.dots.after i {
+  background: var(--accent);
+}
+.dots i.miss {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--fg-muted);
+  position: relative;
+}
+.dots i.miss::after {
+  content: "";
+  position: absolute;
+  inset: 4px -1px auto;
+  height: 1.5px;
+  background: var(--fg-muted);
+  rotate: -45deg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ex *,
+  .story * {
+    animation: none !important;
+  }
+}
+html[data-still] .ex *,
+html[data-still] .story * {
+  animation: none !important;
+}

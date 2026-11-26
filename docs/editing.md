@@ -133,10 +133,18 @@ diary: {
   other year is a chapter of its own, newest first. Each year is still a ring
   on the slice and a fragment (`#record-2019`).
 
-Case studies are not on the page. A project's `careerEntryId` still names the
-entry it was built in: the chat answers from it, `/resume` lists it, and its
-`work-<projectId>` id is a zero-height anchor on that entry's page, so an old
-link still lands.
+A `featured` project is shown in Work (round 32) and has a page of its own,
+`/work/<id>`. To show one, give it a `showcase` in `src/content/portfolio.ts`:
+`big` (the one number) and `small`, a `caption` of a few words, an optional
+`drawing` (`agents`, `rings` or `paper`, drawn by `src/sections/Work/Exhibit.tsx`),
+`figures` (the Diary's `before-after` and `count`, or a `share`), optional
+`numbers`, and three short `calls`. Every figure it shows must already be in the
+project's `metrics` or `proof` or its entry's `impact`
+(`tests/lib/showcase.test.ts`), and its `tagline` is the page's description, so
+keep it to 160 characters. A `workflow` (before and after steps) draws the
+page's "How". An oak tag opens the page when its highlight names the project in
+`projectId`. A project that is not featured stays in the chat and on `/resume`,
+and its `work-<projectId>` id is a zero-height anchor on its entry's Diary page.
 
 ## Where the résumé lives
 

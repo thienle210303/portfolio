@@ -34,6 +34,18 @@ const VIEWPORTS = [
  * applied only when the container path is actually present, and everywhere
  * else the default resolution is left to do its job.
  */
+/** Engines besides Chromium (round 32): WebKit, the engine of every iPhone
+ *  browser and of Safari on a Mac, at a phone width and a laptop width, and
+ *  Firefox at a laptop width. */
+// Firefox is opt-in (`E2E_FIREFOX=1`): on this Mac (2026-11-23) its headless
+// build cannot start (its compositor fails to map a framebuffer, with its
+// sandbox on or off), and every test would wait out a 3-minute launch.
+const OTHER_ENGINES = [
+  { name: "webkit-390", browserName: "webkit", width: 390, height: 844 },
+  { name: "webkit-1440", browserName: "webkit", width: 1440, height: 900 },
+  ...(process.env.E2E_FIREFOX ? [{ name: "firefox-1440", browserName: "firefox", width: 1440, height: 900 } as const] : []),
+] as const;
+
 const PINNED_CHROMIUM = "/opt/pw-browsers/chromium";
 const CHROMIUM_EXECUTABLE = existsSync(PINNED_CHROMIUM) ? PINNED_CHROMIUM : undefined;
 
@@ -49,17 +61,26 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: "on-first-retry",
-    launchOptions: {
-      executablePath: CHROMIUM_EXECUTABLE,
-    },
   },
-  // Chromium only — it is the only browser installed in this environment.
-  projects: VIEWPORTS.map(({ width, height }) => ({
-    name: `chromium-${width}`,
-    use: {
-      viewport: { width, height },
-    },
-  })),
+  projects: [
+    ...VIEWPORTS.map(({ width, height }) => ({
+      name: `chromium-${width}`,
+      use: {
+        browserName: "chromium" as const,
+        viewport: { width, height },
+        launchOptions: { executablePath: CHROMIUM_EXECUTABLE },
+      },
+    })),
+    // Round 32: Safari's engine on a phone and a laptop, and Firefox on a
+    // laptop, run locally (there is no CI). Each runs every test that is not
+    // gated, and its 1440 project runs the ones that set their own viewports
+    // (`e2e/once.ts`), the Diary's turns among them. Needs a one-time
+    // `pnpm exec playwright install webkit firefox`.
+    ...OTHER_ENGINES.map(({ name, browserName, width, height }) => ({
+      name,
+      use: { browserName, viewport: { width, height } },
+    })),
+  ],
   webServer: {
     command: `pnpm dev --port ${PORT}`,
     port: PORT,

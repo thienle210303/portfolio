@@ -6,8 +6,6 @@ import {
   caseStudyAnchorId,
   journeyEntryAnchorId,
   RECORD_ALIAS_IDS,
-  RECORD_LEGACY_SECTION_IDS,
-  RECORD_WORK_ENTRY_ID,
 } from "@/sections/CareerTree/anchors";
 import { careerEntries, certifications, now, projects, record } from "@/content/portfolio";
 import { buildDocuments } from "@/lib/answer-corpus";
@@ -44,7 +42,7 @@ describe("the Diary section", () => {
     for (const article of articles) expect(article.getAttribute("aria-labelledby"), article.id).toBeTruthy();
   });
 
-  it("keeps #diary beside #record, and #work on DoorDash's page, each once and zero-size", () => {
+  it("keeps #diary beside #record, once and zero-size, and no #work (a section again since round 32)", () => {
     render(<Record />);
     for (const id of RECORD_ALIAS_IDS) {
       const alias = document.getElementById(id);
@@ -53,13 +51,7 @@ describe("the Diary section", () => {
       expect(alias?.className).toMatch(/\bscroll-mt-20\b/);
       expect(document.querySelectorAll(`[id="${id}"]`)).toHaveLength(1);
     }
-    for (const id of RECORD_LEGACY_SECTION_IDS) {
-      const target = document.getElementById(id);
-      expect(document.getElementById(journeyEntryAnchorId(RECORD_WORK_ENTRY_ID)), id).toContainElement(target);
-      expect(target).toHaveAttribute("aria-hidden", "true");
-      expect(target?.className).toMatch(/\bh-0\b/);
-      expect(document.querySelectorAll(`[id="${id}"]`)).toHaveLength(1);
-    }
+    expect(document.getElementById("work")).toBeNull();
   });
 
   it("never writes an id into the document twice", () => {
@@ -69,10 +61,14 @@ describe("the Diary section", () => {
     expect([...seen].filter(([, n]) => n > 1).map(([id]) => id)).toEqual([]);
   });
 
-  it("renders no case study: only a zero-size anchor per project, on its entry's page", () => {
+  it("renders no case study: a zero-size anchor for each project the Work section does not show", () => {
     render(<Record />);
     expect(document.querySelectorAll("#record [id^='case-study-']")).toHaveLength(0);
-    for (const project of projects) {
+    // A featured project's `work-<id>` is its sheet in Work (round 32), never here.
+    for (const project of projects.filter((p) => p.featured)) {
+      expect(document.getElementById(caseStudyAnchorId(project.id)), project.id).toBeNull();
+    }
+    for (const project of projects.filter((p) => !p.featured)) {
       const anchor = document.getElementById(caseStudyAnchorId(project.id));
       expect(anchor, project.id).not.toBeNull();
       expect(anchor).toHaveAttribute("aria-hidden", "true");

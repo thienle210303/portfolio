@@ -1,5 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { onceOverall } from "./once";
+import { navItems } from "../src/content/portfolio";
+
+/** The tour visits every nav section (five since round 32's Work). */
+const STOPS = navItems.length;
 
 /**
  * The companion cats, their play menu, and the one place they can be put away.
@@ -622,7 +627,8 @@ test.describe("companion", () => {
     await expect(cat).toBeFocused();
   });
 
-  test("is reachable and operable by keyboard alone", async ({ page }) => {
+  test("is reachable and operable by keyboard alone", async ({ page, browserName }) => {
+    test.fixme(browserName === "webkit", "Safari does not focus a button on click");
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "state is viewport-independent; run once");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
@@ -1860,7 +1866,8 @@ test.describe("companion", () => {
     expect(greyLeft, "the grey cat never left the right-hand side").toBeGreaterThanOrEqual(1);
   });
 
-  test("a key that never scrolls still counts as activity", async ({ page }) => {
+  test("a key that never scrolls still counts as activity", async ({ page, browserName }) => {
+    test.fixme(browserName === "webkit", "WebKit on macOS moves Tab to text fields only (Full Keyboard Access off), so Tab jumps to the postcard");
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
     test.setTimeout(60_000);
     await page.goto("/");
@@ -3258,11 +3265,12 @@ test.describe("companion", () => {
 
   /* ------------------------------------------------------------- D4/D5: the guided tour -- */
 
-  test("walks all four stops, choosing a route at the fork, and ends back on the cat", async ({
+  test("walks every stop, choosing a route at the fork, and ends back on the cat", async ({
     page,
   }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
-    test.setTimeout(60_000);
+    // A walk per stop: the budget follows the count.
+    test.setTimeout(15_000 * STOPS);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
@@ -3272,8 +3280,8 @@ test.describe("companion", () => {
     const hud = page.getByLabel(/guided tour/i);
     const status = hud.getByRole("status");
 
-    for (let stop = 1; stop <= 4; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 4`, "i"))).toBeVisible({
+    for (let stop = 1; stop <= STOPS; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of ${STOPS}`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       const before = await page.evaluate(() => window.scrollY);
@@ -3290,20 +3298,18 @@ test.describe("companion", () => {
         expect(after).not.toBe(before);
       }
       if (stop === 1) {
-        // The one fork in the walk, after About: the derived middle is the
-        // Journey and the Record (round 18 removed Work, Skills and the
-        // Workshop, round 21 Worlds and added the Record — see
-        // companion-tour.ts's GREY_MIDDLE/stopsFor) — so About is the only
-        // stop every route shares first. "Next stop" is gone here, replaced by
-        // the two routes — both of which reach every one of the four stops.
-        // This run follows Grey's.
+        // The one fork in the walk, after About: the derived middle is Work,
+        // the Journey and the Record (companion-tour.ts's GREY_MIDDLE/stopsFor;
+        // round 32 brought Work back) — so About is the only stop every route
+        // shares first. "Next stop" is gone here, replaced by the two routes —
+        // both of which reach every stop. This run follows Grey's.
         await expect(hud.getByRole("button", { name: /next stop/i })).toHaveCount(0);
         await expect(hud.getByRole("button", { name: /follow grey/i })).toBeVisible();
         await expect(hud.getByRole("button", { name: /follow tabby/i })).toBeVisible();
         await hud.getByRole("button", { name: /follow grey/i }).click();
         continue;
       }
-      const isLast = stop === 4;
+      const isLast = stop === STOPS;
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
 
@@ -3315,7 +3321,7 @@ test.describe("companion", () => {
 
   test("the other route reaches every stop too, ending on Contact", async ({ page }) => {
     test.skip(viewportWidth(page) !== DESKTOP_WIDTH, "roaming needs the desktop layout; run once");
-    test.setTimeout(60_000);
+    test.setTimeout(15_000 * STOPS);
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await companionAwake(page);
@@ -3327,20 +3333,20 @@ test.describe("companion", () => {
 
     // To the fork — About alone, the derived middle being the Journey and
     // the Record — and pick the cat the other test did not: the curious route.
-    await expect(hud.getByText(/stop 1 of 4/i)).toBeVisible({ timeout: 10_000 });
+    await expect(hud.getByText(new RegExp(`stop 1 of ${STOPS}`, "i"))).toBeVisible({ timeout: 10_000 });
     await expect(status).not.toHaveText("", { timeout: 10_000 });
     await hud.getByRole("button", { name: /follow tabby/i }).click();
 
-    for (let stop = 2; stop <= 4; stop += 1) {
-      await expect(hud.getByText(new RegExp(`stop ${stop} of 4`, "i"))).toBeVisible({
+    for (let stop = 2; stop <= STOPS; stop += 1) {
+      await expect(hud.getByText(new RegExp(`stop ${stop} of ${STOPS}`, "i"))).toBeVisible({
         timeout: 10_000,
       });
       await expect(status).not.toHaveText("", { timeout: 10_000 });
-      const isLast = stop === 4;
+      const isLast = stop === STOPS;
       if (isLast) {
         // Both routes share the same last stop — Contact — regardless of
         // which way the middle was walked.
-        await expect(hud.getByText(/stop 4 of 4.*contact/i)).toBeVisible();
+        await expect(hud.getByText(new RegExp(`stop ${STOPS} of ${STOPS}.*contact`, "i"))).toBeVisible();
       }
       await hud.getByRole("button", { name: isLast ? /finish tour/i : /next stop/i }).click();
     }
@@ -3908,7 +3914,7 @@ test.describe("cats (round 21)", () => {
   });
 
   test("under reduced motion Mi just sits beside Moon, off duty, once", async ({ browser }) => {
-    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
+    test.skip(!onceOverall(test.info()), "sets its own viewport; run once");
     const context = await browser.newContext({
       viewport: { width: DESKTOP_WIDTH, height: 900 },
       reducedMotion: "reduce",
@@ -3939,7 +3945,7 @@ test.describe("cats (round 21)", () => {
   });
 
   test("the parked pair stays off the hero's controls, and off whatever has focus", async ({ browser }) => {
-    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
+    test.skip(!onceOverall(test.info()), "sets its own viewport; run once");
     test.setTimeout(90_000);
     const context = await browser.newContext({
       viewport: { width: 390, height: 844 },
@@ -3994,7 +4000,7 @@ test.describe("cats (round 21)", () => {
   test("at 320 the parked pair tucks off the edge instead of resting on the postcard's or the chat's words", async ({
     browser,
   }) => {
-    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
+    test.skip(!onceOverall(test.info()), "sets its own viewport; run once");
     test.setTimeout(90_000);
     const context = await browser.newContext({ viewport: { width: 320, height: 640 }, reducedMotion: "reduce" });
     const page = await context.newPage();
@@ -4089,7 +4095,7 @@ test.describe("cats (round 21)", () => {
   test("they keep off the Wordification tag's year, Contact's lede and the postcard's greeting", async ({
     browser,
   }) => {
-    test.skip(test.info().project.name !== "chromium-1440", "sets its own viewports; run once");
+    test.skip(!onceOverall(test.info()), "sets its own viewports; run once");
     test.setTimeout(180_000);
     const cases = [
       // Phones: no cat rests on them. At 1280 none even walks over the lede.
@@ -4143,7 +4149,7 @@ test.describe("cats (round 21)", () => {
   ]) {
     const what = size.record ? "the Diary's cards, contents or stamps" : "a link or a button";
     test(`a cat never covers ${what}, walking or stopped, at ${size.width}${size.night ? " at night" : ""}`, async ({ browser }) => {
-      test.skip(test.info().project.name !== "chromium-1440", "sets its own viewport; run once");
+      test.skip(!onceOverall(test.info()), "sets its own viewport; run once");
       test.setTimeout(600_000);
       const context = await browser.newContext({ viewport: size, colorScheme: size.night ? "dark" : "light" });
       const page = await context.newPage();

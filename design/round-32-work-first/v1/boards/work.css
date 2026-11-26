@@ -1,0 +1,471 @@
+/*
+ * Round 32: the Work section's two object directions and the case-study page.
+ * Shared by work.html and work-page.html. Tokens only, through board.css.
+ *
+ *   A, the pass:  order tickets on a kitchen ticket rail. Thermal paper is
+ *                 light in both themes, so the tickets take the manila
+ *                 family's own inks (--color-ink, --color-kraft-muted,
+ *                 --color-kraft-moss), like the hero's receipt.
+ *   B, the bench: graph-paper computation sheets lying on the ground, like
+ *                 the postcard: `data-paper`, so the aliases repoint at night.
+ */
+
+/* ---- The at-rest content, either object ---- */
+.cs {
+  position: relative;
+}
+.cs .k {
+  font: 700 var(--step--2) / 1.25 var(--font-mono);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+.cs h3 {
+  font: 600 var(--step-2) / 1.12 var(--font-display);
+  letter-spacing: var(--tracking-display);
+}
+/* The title is the link; its ::after stretches over the paper, so the whole
+   object is one target with one name. */
+.cs h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+.cs h3 a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.cs dl {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+.cs dt {
+  margin: 0;
+}
+.cs dd {
+  margin: 2px 0 0;
+  font-size: var(--step-0);
+  line-height: 1.45;
+}
+.cs .proof {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.cs .proof b {
+  font: 700 var(--step-3) / 1 var(--font-mono);
+  letter-spacing: -0.02em;
+}
+.cs .proof span {
+  font: 400 var(--step--1) / 1.3 var(--font-mono);
+}
+.cs .more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font: 600 var(--step--1) / 1 var(--font-sans);
+}
+
+/* ---- A, the pass ---- */
+.pass {
+  position: relative;
+  padding: 0 0 28px;
+}
+/* The stall's plank and its two posts stand in for a drawing
+   (draw-scenery: `pass-plank`, `pass-post`), so the rail is held by
+   something that stands in the ground, outdoors. */
+.pass .plank {
+  height: 30px;
+  margin-inline: -16px;
+}
+.pass .rail {
+  position: relative;
+  height: 12px;
+  margin: -4px -10px 0;
+  border-radius: 3px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fg-muted) 30%, var(--surface)),
+    color-mix(in srgb, var(--fg-muted) 75%, var(--surface)) 70%,
+    color-mix(in srgb, var(--fg) 70%, var(--surface))
+  );
+  box-shadow: 0 2px 2px -1px rgb(30 40 35 / 0.35);
+  z-index: 2;
+}
+.pass .posts {
+  position: absolute;
+  inset: 0 0 0 0;
+  pointer-events: none;
+}
+.pass .posts .art {
+  position: absolute;
+  top: 8px;
+  bottom: -40px;
+  width: 26px;
+  font-size: 12px;
+  writing-mode: vertical-rl;
+}
+.pass .posts .art:first-child {
+  left: -40px;
+}
+.pass .posts .art:last-child {
+  right: -40px;
+}
+.tickets {
+  display: grid;
+  gap: 18px;
+  margin-top: -6px;
+}
+.ticket {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  padding: 22px 16px 30px;
+  rotate: var(--tilt, 0deg);
+  transform-origin: 50% 0;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 16px 28px -14px rgb(30 40 35 / 0.35);
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 12px 100%;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 12px 100%;
+}
+.ticket .k {
+  color: var(--color-kraft-muted);
+}
+.ticket .top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1.5px dashed color-mix(in srgb, var(--color-ink) 35%, transparent);
+  font: 700 var(--step--2) / 1.2 var(--font-mono);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--color-kraft-muted);
+}
+.ticket h3 {
+  margin-bottom: 14px;
+}
+.ticket .proof b {
+  color: var(--color-kraft-moss);
+}
+.ticket .proof span {
+  color: var(--color-kraft-muted);
+}
+.ticket .more {
+  color: var(--color-ink);
+}
+@media (width >= 40rem) {
+  .tickets {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+}
+@media (width >= 64rem) {
+  .tickets {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+}
+/* Below 1024 the tickets stack, so the pass is a tall back-board on its two
+   posts with a rail across it above each ticket: no ticket hangs from
+   nothing. From 1024 one rail carries all four. */
+.slot > .rail {
+  display: none;
+}
+@media (width < 64rem) {
+  .pass > .rail {
+    display: none;
+  }
+  .slot > .rail {
+    display: block;
+    margin-bottom: -6px;
+  }
+  .tickets {
+    margin-top: 0;
+  }
+}
+
+/* ---- B, the bench ---- */
+.sheets {
+  display: grid;
+  gap: 32px;
+}
+@media (width >= 40rem) {
+  .sheets {
+    grid-template-columns: 1fr 1fr;
+    gap: 36px 28px;
+  }
+}
+.sheet {
+  --grid: color-mix(in srgb, var(--accent) 13%, transparent);
+  position: relative;
+  color: var(--fg);
+  padding: 0 0 18px;
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 18px 18px;
+  background-position: -1px -1px;
+  border-radius: 2px;
+  rotate: var(--tilt, 0deg);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 22px 40px rgb(30 40 35 / 0.2);
+}
+/* A binder clip, drawn in the build (`binder-clip`). */
+.sheet .clip {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 54px;
+  height: 22px;
+  translate: -50% 0;
+  border-radius: 3px 3px 2px 2px;
+  background: color-mix(in srgb, var(--fg) 85%, var(--surface));
+  z-index: 2;
+}
+.sheet .clip::before,
+.sheet .clip::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  width: 16px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--fg-muted) 80%, var(--surface));
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+}
+.sheet .clip::before {
+  left: 6px;
+}
+.sheet .clip::after {
+  right: 6px;
+}
+/* The computation pad's title block. */
+.sheet .block {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  border-bottom: 1.5px solid var(--fg);
+  font: 400 var(--step--2) / 1.3 var(--font-mono);
+  background: var(--surface);
+}
+.sheet .block > div {
+  padding: 8px 12px;
+}
+.sheet .block > div + div {
+  border-left: 1px solid var(--rule-color);
+  text-align: right;
+}
+.sheet .block .k {
+  display: block;
+  color: var(--fg-muted);
+  font-size: var(--step--2);
+}
+.sheet .body {
+  padding: 16px 18px 0;
+}
+.sheet h3 {
+  margin-bottom: 14px;
+}
+.sheet dl {
+  margin-top: 14px;
+}
+.sheet dt.k {
+  color: var(--fg-muted);
+}
+.sheet .proof b {
+  color: var(--accent);
+}
+.sheet .proof span {
+  color: var(--fg-muted);
+}
+.sheet .more {
+  color: var(--fg);
+}
+
+/* ---- The case-study page ---- */
+.doc {
+  position: relative;
+  max-width: 64rem;
+  margin-inline: auto;
+}
+.doc .back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  font: 600 var(--step--1) / 1 var(--font-sans);
+  color: var(--fg);
+  text-decoration: none;
+}
+.doc article {
+  margin-top: 8px;
+}
+.doc .prose {
+  max-width: 58ch;
+}
+.doc h2.k {
+  font: 700 var(--step--2) / 1.25 var(--font-mono);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  margin: 34px 0 10px;
+}
+.doc p + p {
+  margin-top: 10px;
+}
+.doc ul {
+  margin: 0;
+  padding-left: 1.15em;
+}
+.doc li + li {
+  margin-top: 6px;
+}
+.facts {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  font: 400 var(--step--1) / 1.4 var(--font-mono);
+}
+.facts dt {
+  color: var(--fg-muted);
+  font-size: var(--step--2);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.facts dd {
+  margin: 0;
+}
+@media (width >= 64rem) {
+  .doc .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    gap: 48px;
+  }
+  .doc .cols aside {
+    position: sticky;
+    top: 5rem;
+    align-self: start;
+  }
+}
+
+/* The before/after workflow, drawn from `workflow`. */
+.flow {
+  display: grid;
+  gap: 20px;
+  margin-top: 12px;
+}
+@media (width >= 40rem) {
+  .flow {
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+}
+.flow ol {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+}
+.flow li {
+  position: relative;
+  padding: 8px 10px;
+  border: 1.5px solid var(--rule-color);
+  border-radius: 2px;
+  background: var(--surface);
+  font-size: var(--step--1);
+  line-height: 1.35;
+}
+.flow li + li::before {
+  content: "↓";
+  position: absolute;
+  top: -19px;
+  left: 14px;
+  color: var(--fg-muted);
+  font: 400 14px / 1 var(--font-mono);
+}
+.flow .after li {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--rule-color));
+}
+.flow small {
+  display: block;
+  margin-top: 2px;
+  font: 400 12px / 1.3 var(--font-mono);
+  color: var(--accent);
+}
+.flow .before small {
+  color: var(--fg-muted);
+}
+.flow .fan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.flow .fan span {
+  font: 400 12px / 1 var(--font-mono);
+  padding: 5px 7px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+  border-radius: 2px;
+}
+
+/* The proof ledger, from `metrics`. */
+.ledger {
+  display: grid;
+  gap: 0;
+  margin-top: 6px;
+  border-top: 1.5px solid var(--fg);
+}
+.ledger > div {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule-color);
+}
+@media (width >= 40rem) {
+  .ledger > div {
+    grid-template-columns: 12rem 1fr;
+  }
+}
+.ledger .what {
+  font: 700 var(--step--2) / 1.3 var(--font-mono);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.ledger .was {
+  color: var(--fg-muted);
+  font: 400 var(--step--1) / 1.35 var(--font-mono);
+}
+.ledger .now {
+  font: 700 var(--step-1) / 1.2 var(--font-mono);
+  color: var(--accent);
+}
+.ledger .src {
+  grid-column: 1 / -1;
+  font: 400 12px / 1.3 var(--font-mono);
+  color: var(--fg-muted);
+}
+@media (width >= 40rem) {
+  .ledger .src {
+    grid-column: 2;
+  }
+}
+/* The runtime bars: the Diary's own figure for DoorDash (1020 vs 3 minutes). */
+.bars {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  font: 400 var(--step--1) / 1.2 var(--font-mono);
+}
+.bars .bar {
+  height: 14px;
+  background: var(--fg-muted);
+  border-radius: 1px;
+}
+.bars .bar.after {
+  background: var(--accent);
+  width: 3px;
+}

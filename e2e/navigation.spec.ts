@@ -202,7 +202,8 @@ test.describe("the header's paper strip", () => {
   });
 });
 
-test("skip link is the first focusable element and moves focus to #main", async ({ page }) => {
+test("skip link is the first focusable element and moves focus to #main", async ({ page, browserName }) => {
+  test.fixme(browserName === "webkit", "WebKit on macOS moves Tab to links only with Option+Tab (Full Keyboard Access off)");
   await page.keyboard.press("Tab");
   const skipLink = page.getByRole("link", { name: "Skip to main content" });
   await expect(skipLink).toBeFocused();

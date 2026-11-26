@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Drawing } from "@/components/scenery/Drawing";
 import type { DiaryDrawingName, DiaryFigure as Figure } from "@/types/portfolio";
 
@@ -49,8 +50,14 @@ function Bars({ figure }: { readonly figure: Extract<Figure, { kind: "before-aft
         <div key={row.side}>
           <dt className="sr-only">{row.side}</dt>
           <dd className="m-0">
-            <span className="block h-3.5 max-w-full" style={{ width: share(row.value) }}>
-              <span aria-hidden="true" className={`block size-full ${row.tone}`} />
+            {/* `--bar` (its share of the longer bar) and `data-bar` are for the
+                Work section's sheets, which grow a bar in time with its length
+                (round 32); the Diary draws it still. */}
+            <span
+              className="block h-3.5 max-w-full"
+              style={{ width: share(row.value), "--bar": (row.value / top).toFixed(3) } as CSSProperties}
+            >
+              <span aria-hidden="true" data-bar="" className={`block size-full ${row.tone}`} />
             </span>
             <span className="mt-0.5 block font-mono text-[length:var(--step--1)] text-fg">{row.label}</span>
           </dd>
@@ -77,7 +84,7 @@ function Marks({ figure }: { readonly figure: Extract<Figure, { kind: "count" }>
         role="presentation"
       >
         {Array.from({ length: n }, (_, i) => (
-          <circle key={i} cx={(i % cols) * 16 + 8} cy={Math.floor(i / cols) * 16 + 8} r={5.5} />
+          <circle key={i} cx={(i % cols) * 16 + 8} cy={Math.floor(i / cols) * 16 + 8} r={5.5} style={{ "--i": i } as CSSProperties} />
         ))}
       </svg>
     );
@@ -98,7 +105,7 @@ function Marks({ figure }: { readonly figure: Extract<Figure, { kind: "count" }>
         const x0 = (g % perRow) * 44 + 6;
         const y0 = Math.floor(g / perRow) * 34 + 4;
         return (
-          <g key={g}>
+          <g key={g} style={{ "--i": g } as CSSProperties}>
             {Array.from({ length: Math.min(marks, 4) }, (_, k) => (
               <path key={k} d={`M${x0 + k * 7} ${y0}V${y0 + 24}`} />
             ))}

@@ -9,7 +9,7 @@ import {
   skillsIndexable,
 } from "@/lib/answer-sources";
 import { careerEntries, companions, journey, navItems, now, origin } from "@/content/portfolio";
-import { LEGACY_SECTION_IDS, RECORD_LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
+import { LEGACY_SECTION_IDS } from "@/sections/CareerTree/anchors";
 
 /**
  * The index's contract is narrower than "gives good answers": it is that every
@@ -169,14 +169,15 @@ describe("answer", () => {
   });
 
   it("cites no compatibility anchor, only a real section", () => {
-    // `#journey`, `#work`, `#skills` and `#workshop` all resolve — they are the
+    // `#journey`, `#skills` and `#workshop` all resolve — they are the
     // zero-size spans the Journey renders for inbound links the site does not
     // control. A citation using one would still land, which is exactly why this
     // needs asserting: it would look fine and would quietly make the
     // compatibility anchors load-bearing for the site's own UI, so they could
     // never be removed. Career documents cited `journey` until round 18's Task
-    // 13 re-pointed them at `tree`; round 21 phase 5 at `record`.
-    const legacy = new Set<string>([...LEGACY_SECTION_IDS, ...RECORD_LEGACY_SECTION_IDS]);
+    // 13 re-pointed them at `tree`; round 21 phase 5 at `record`. `#work` left
+    // this list in round 32, when Work became a section again.
+    const legacy = new Set<string>(LEGACY_SECTION_IDS);
     expect(legacy.size, "no compatibility anchors to check for").toBeGreaterThan(0);
     const offenders = buildDocuments()
       .filter((doc) => doc.sectionId !== undefined && legacy.has(doc.sectionId))
@@ -186,7 +187,7 @@ describe("answer", () => {
     // is not itself one of the compatibility anchors, so a corpus that cited
     // only legacy ids really would fail above.
     expect(legacy.has("record")).toBe(false);
-    expect(legacy.has("work")).toBe(true);
+    expect(legacy.has("work")).toBe(false);
   });
 
   it("never surfaces a [NEEDS INPUT] marker", () => {
@@ -214,7 +215,8 @@ describe("answer", () => {
     const expected: Record<string, { section: string | null; source: RegExp }> = {
       "What do you do at DoorDash?": { section: "about", source: /^About/ },
       "Are you from Việt Nam?": { section: "about", source: /^(About|Origin story)/ },
-      "What have you measured?": { section: "record", source: /DoorDash/ },
+      // Round 32: the featured case studies' figures cite Work, where they are drawn.
+      "What have you measured?": { section: "work", source: /DoorDash/ },
       "What are your cats called?": { section: null, source: /^The two cats$/ },
     };
     expect([...SUGGESTED_QUESTIONS]).toEqual(Object.keys(expected));

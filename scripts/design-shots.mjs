@@ -48,7 +48,9 @@ const VIEWPORTS = [
   { width: 1920, height: 1080 },
 ];
 const THEMES = ["day", "night"];
-const SECTIONS = ["about", "tree", "record", "contact"];
+const SECTIONS = ["about", "work", "tree", "record", "contact"];
+/** Round 32: one case study's page, shot whole (it is long by design). */
+const WORK_PAGE = "/work/dd-scraper-platform";
 /** Widths the interactive states are shot at: one phone, one desktop. */
 const STATE_WIDTHS = [390, 1440];
 const isTouch = (width) => width < 1024;
@@ -174,6 +176,12 @@ async function captureStills(browser, base, dir, viewport, theme) {
   const resume = await open(browser, base, viewport, theme, { route: "/resume" });
   await resume.page.screenshot({ path: out("resume"), ...SHOT });
   await resume.context.close();
+
+  const study = await open(browser, base, viewport, theme, { route: WORK_PAGE });
+  await walk(study.page);
+  await study.page.addStyleTag({ content: WHOLE_ELEMENT });
+  await study.page.locator("main").screenshot({ path: out("work-page"), ...SHOT });
+  await study.context.close();
 }
 
 /**
@@ -314,7 +322,7 @@ async function writeSheet(dir, label) {
       if (!groups.has(match[1])) groups.set(match[1], []);
       groups.get(match[1]).push({ width: Number(match[2]), file });
     }
-    const order = ["fold", ...SECTIONS, "footer", "resume"];
+    const order = ["fold", ...SECTIONS, "work-page", "footer", "resume"];
     const names = [...groups.keys()].sort(
       (a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99) || a.localeCompare(b),
     );

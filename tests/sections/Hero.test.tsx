@@ -41,7 +41,8 @@ describe("Hero", () => {
   it("offers the two actions", () => {
     renderHero();
     const start = screen.getByRole("link", { name: "See what I've built" });
-    expect(start).toHaveAttribute("href", "#tree");
+    // Round 32: the case studies, right under About.
+    expect(start).toHaveAttribute("href", "#work");
     expect(start.querySelector(".ticket-face")?.className).toMatch(CONTROL_FILL);
     // No booking link: the quiet action names the postcard it lands on, not a call.
     expect(screen.getByRole("link", { name: "Send me a postcard" })).toHaveAttribute("href", "#contact");
@@ -168,14 +169,35 @@ describe("Hero", () => {
     }
   });
 
-  it("reads in one order at every width: my words, the hint, 2003 to 2025, my field tag", () => {
+  it("names me once at any width: over the h1 from 640, under it on a phone", () => {
+    // Round 32: my name was only inside the field tag. One copy per band, each
+    // where that band reads it, so a reader meets exactly one: the yard's row
+    // from 1024, the top of my words from 640, a byline under the h1 on a
+    // phone (over it, the h1's first line ran into the sun).
+    const { about } = renderHero();
+    const lines = [...about.querySelectorAll("[data-name-line]")];
+    expect(lines).toHaveLength(3);
+    for (const line of lines) {
+      expect(line.tagName).toBe("P");
+      expect(line).toHaveTextContent(`${profile.name}${profile.title} · ${profile.specialty}`);
+    }
+    const [yard, tablet, phone] = lines;
+    expect(yard.className).toMatch(/(^| )max-lg:hidden( |$)/);
+    expect(tablet.className).toMatch(/(^| )hidden sm:block lg:hidden( |$)/);
+    expect(phone.className).toMatch(/(^| )sm:hidden( |$)/);
+    const h1 = about.querySelector("h1")!;
+    const before = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(before(yard, h1) && before(tablet, h1) && before(h1, phone)).toBe(true);
+  });
+
+  it("reads in one order at every width: my name, my words, the hint, 2003 to 2025, my field tag", () => {
     // Round 25: one grid, one set of tags; each band only lays them out.
     const { about } = renderHero();
     const yard = about.querySelector(".hero-yard")!;
     const read = [...yard.children]
       .filter((el) => el.getAttribute("aria-hidden") !== "true")
       .map((el) => el.getAttribute("data-yard") ?? el.getAttribute("data-hero-step"));
-    expect(read).toEqual(["words", "hint", "line", "field"]);
+    expect(read).toEqual(["name", "words", "hint", "line", "field"]);
     expect(yard.querySelector('[data-yard="hint"]')).toHaveTextContent(hero.hint);
     const tags = [...yard.querySelectorAll('[data-hero-step="line"] > li')];
     expect(tags).toHaveLength(4);

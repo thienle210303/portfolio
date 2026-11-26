@@ -418,9 +418,10 @@ describe("the invented layer is gone", () => {
   });
 });
 
-describe("the page is four sections", () => {
-  it("lists exactly About, Journey, Record and Contact", () => {
-    expect(navItems.map((item) => item.sectionId)).toEqual(["about", "tree", "record", "contact"]);
+describe("the page is five sections", () => {
+  it("lists exactly About, Work, Journey, Record and Contact", () => {
+    // Round 32: Work, the case studies, came back right after About.
+    expect(navItems.map((item) => item.sectionId)).toEqual(["about", "work", "tree", "record", "contact"]);
   });
 
   it("keeps skillCategories, which /resume still renders", () => {

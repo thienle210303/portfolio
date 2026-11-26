@@ -35,11 +35,11 @@ import { leadSchema } from "./schema";
 
 export const runtime = "nodejs";
 
-type ContactField = "name" | "email" | "phone";
+type ContactField = "name" | "email" | "phone" | "note";
 type FieldErrors = Partial<Record<ContactField, string>>;
 
 function isContactField(value: unknown): value is ContactField {
-  return value === "name" || value === "email" || value === "phone";
+  return value === "name" || value === "email" || value === "phone" || value === "note";
 }
 
 /** First message per field is enough for a form that validates one field's
@@ -196,6 +196,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
     name: asString(body.name),
     email: asString(body.email),
     phone: asString(body.phone),
+    note: asString(body.note),
   });
 
   if (!parsed.success) {
@@ -205,7 +206,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
     );
   }
 
-  const { name, email, phone } = parsed.data;
+  const { name, email, phone, note } = parsed.data;
 
   try {
     const resend = new Resend(apiKey);
@@ -213,6 +214,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ContactAp
     const lines = [`Name: ${name}`];
     if (email) lines.push(`Email: ${email}`);
     if (phone) lines.push(`Phone: ${phone}`);
+    // The note is plain text in my own copy, never in the thank-you (round 32).
+    if (note) lines.push("", "Note:", note);
     const text = lines.join("\n");
 
     const { error } = await resend.emails.send({

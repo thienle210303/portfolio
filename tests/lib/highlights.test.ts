@@ -39,20 +39,32 @@ describe("buildHighlights", () => {
     }
   });
 
-  it("the stub reads on in its case study", () => {
+  it("a tag with a case study opens its page; the rest their Diary page", () => {
     // Owner, 2026-10-20: the 2 → 25 workflow is "The one-hour feasibility
-    // question", so the stub links to that case study inside the DoorDash row.
-    const [first, stub, ...rest] = buildHighlights();
-    expect(stub.href).toBe("#work-dd-feasibility-agent");
-    expect(projects.find((p) => p.id === "dd-feasibility-agent")?.careerEntryId).toBe(stub.entryId);
-    for (const h of [first, ...rest]) expect(h.href).toBe(`#journey-entry-${h.entryId}`);
+    // question". Round 32: every tag whose figure is a shown case study's opens
+    // that case study's page, /work/<id>; the others open the entry's page.
+    const all = buildHighlights();
+    const byValue = Object.fromEntries(all.map((h) => [h.value, h.href]));
+    expect(byValue).toEqual({
+      "17h → 3m": "/work/dd-scraper-platform",
+      "2 → 25": "/work/dd-feasibility-agent",
+      "99.9%": "#journey-entry-wordification",
+      "96%": "/work/schaeffler-setup-sheets",
+      "3M+": "/work/usc-research-collection",
+      "200+": "#journey-entry-usc-ta",
+    });
+    for (const h of all.filter((x) => x.projectId)) {
+      const project = projects.find((p) => p.id === h.projectId);
+      expect(project?.careerEntryId, h.value).toBe(h.entryId);
+      expect(project?.featured, `${h.projectId} has no page`).toBe(true);
+    }
   });
 
   it("tickets group one entry's halves", () => {
     const tickets = buildTickets();
     expect(tickets).toHaveLength(5);
     expect(tickets[0].name).toBe("DoorDash");
-    expect(tickets[0].href).toBe("#journey-entry-doordash");
+    expect(tickets[0].href).toBe("/work/dd-scraper-platform");
     expect(tickets[0].halves.map((h) => h.value)).toEqual(["17h → 3m", "2 → 25"]);
     for (const t of tickets.slice(1)) expect(t.halves).toHaveLength(1);
     for (const t of tickets) for (const h of t.halves) expect(h.name).toBe(t.name);

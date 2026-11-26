@@ -14,6 +14,10 @@ export const PHONE_MAX = 21;
 export const PHONE_PATTERN = /^\+?(?=(?:\D*\d){7})[\d ().-]{7,20}$/;
 // No CR, LF or other control character: the name goes into the email subject.
 export const SINGLE_LINE = /^[^\x00-\x1f\x7f]*$/;
+// The optional note (round 32). It goes into the body of my own copy only,
+// as plain text: new lines and tabs are fine, other control characters not.
+export const NOTE_MAX = 1000;
+export const NOTE_TEXT = /^[^\x00-\x08\x0b\x0c\x0e-\x1f\x7f]*$/;
 
 export const LEAD_ERRORS = {
   nameRequired: "Enter your name.",
@@ -23,12 +27,16 @@ export const LEAD_ERRORS = {
   emailTooLong: `Keep your email under ${EMAIL_MAX} characters.`,
   phone: "Enter a valid phone number.",
   pair: "Add an email or a phone number so I can reach you.",
+  noteTooLong: `Keep the note under ${NOTE_MAX.toLocaleString("en-US")} characters.`,
+  noteText: "Use plain text in the note.",
 } as const;
 
 export interface Lead {
   readonly name: string;
   readonly email?: string;
   readonly phone?: string;
+  /** Optional (round 32): reaches my inbox only; the thank-you never repeats it. */
+  readonly note?: string;
 }
 
 export function leadSubject(name: string): string {

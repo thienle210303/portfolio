@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="390,768,1024,1440" />
+    <title>Work: four case studies, at rest</title>
+    <link rel="stylesheet" href="board.css" />
+    <link rel="stylesheet" href="work.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 32 v1. A new section right after About (`#work`), before the
+       * Journey. Thien's answer (2026-11-22): each of the four written case
+       * studies at rest as its problem, one decision and its proof, and the
+       * whole story on its own page, /work/<id>.
+       *
+       * Every word below is from src/content/portfolio.ts except the
+       * problem and "my call" lines, which are new short drafts drawn from
+       * each project's `problem` and `decisions` (to approve on the review
+       * page). The proof is the oak's own tag for that project (its
+       * `highlights` row, which gains a `projectId`), so the Work section and
+       * the oak can never disagree about a number.
+       *
+       * Two directions for the object. A: order tickets on a kitchen rail
+       * (my restaurant years; the system is named for the pass). B:
+       * computation sheets, clipped, lying like the postcard does.
+       */
+      .row-label { margin: 56px 0 18px; }
+      .head { max-width: 46rem; }
+      .head .aside { margin-top: 10px; }
+      .choice { position: relative; }
+      .pass-back { position: absolute; inset: 0 -24px -20px; z-index: -1; }
+      .notes { max-width: 35rem; margin: 64px 0 0; display: grid; gap: 10px; }
+      .notes h2 { font-size: var(--step-0); margin-top: 12px; }
+      @media (width >= 64rem) { .pass-back { display: none; } }
+    </style>
+  </head>
+  <body>
+    <section class="section">
+      <div class="shell">
+        <p class="label">Round 32 · v1 · the Work section, between About and the Journey</p>
+
+        <div class="head" style="position: relative; margin-top: 18px">
+          <span class="pin" style="left: -32px; top: 6px">1</span>
+          <h2 class="chapter">What I built, and how.</h2>
+          <p class="aside">The four I can say the most about: the problem, my call, and the number that proved it.</p>
+        </div>
+
+        <!-- ===================== A, the pass ===================== -->
+        <p class="label row-label">A · the pass: order tickets on a stall's rail</p>
+        <div class="choice pass">
+          <span class="pin" style="left: -32px; top: 0">2</span>
+          <div class="art dark pass-back">the pass, below 1024: a tall back-board on two posts (drawing); a rail above each ticket</div>
+          <div class="plank art dark">the pass: a stall's plank on two posts that stand in the ground (drawing, draw-scenery)</div>
+          <div class="posts" aria-hidden="true"><span class="art dark">post</span><span class="art dark">post</span></div>
+          <div class="rail"></div>
+          <ul class="tickets" style="list-style: none; padding: 0">
+            <li class="slot">
+              <div class="rail"></div>
+              <article class="ticket cs" style="--tilt: -0.8deg">
+                <div class="top"><span>No. 01</span><span>DoorDash · 2026</span></div>
+                <h3><a href="#">The one-hour feasibility question</a></h3>
+                <dl>
+                  <div><dt class="k">The problem</dt><dd>Knowing whether a retailer's catalog could support an integration took days, by hand.</dd></div>
+                  <div><dt class="k">My call</dt><dd>Run independent strategies in parallel and cross-check them, instead of one pipeline.</dd></div>
+                  <div><dt class="k">The proof</dt><dd class="proof"><b>2 → 25</b><span>onboarded merchants/month</span></dd></div>
+                </dl>
+                <span class="more">Read the whole story <span aria-hidden="true">→</span></span>
+              </article>
+            </li>
+            <li class="slot">
+              <div class="rail"></div>
+              <article class="ticket cs" style="--tilt: 0.6deg">
+                <div class="top"><span>No. 02</span><span>DoorDash · 2025</span></div>
+                <h3><a href="#">Thirty scrapers in a week</a></h3>
+                <dl>
+                  <div><dt class="k">The problem</dt><dd>Every scraper was a one-off, so more retailers meant more bespoke things to keep alive.</dd></div>
+                  <div><dt class="k">My call</dt><dd>Standardise the workflow and validation first; rebuild the worst scraper against it as proof.</dd></div>
+                  <div><dt class="k">The proof</dt><dd class="proof"><b>17h → 3m</b><span>3.9% → 0% error</span></dd></div>
+                </dl>
+                <span class="more">Read the whole story <span aria-hidden="true">→</span></span>
+              </article>
+            </li>
+            <li class="slot">
+              <div class="rail"></div>
+              <article class="ticket cs" style="--tilt: -0.4deg">
+                <div class="top"><span>No. 03</span><span>USC research · 2022</span></div>
+                <h3><a href="#">Three million records, unattended</a></h3>
+                <dl>
+                  <div><dt class="k">The problem</dt><dd>Millions of records over months, unattended, from sites that push back on automation.</dd></div>
+                  <div><dt class="k">My call</dt><dd>Do the expensive work inside the page, and walk the network breadth-first.</dd></div>
+                  <div><dt class="k">The proof</dt><dd class="proof"><b>3M+</b><span>records, unattended</span></dd></div>
+                </dl>
+                <span class="more">Read the whole story <span aria-hidden="true">→</span></span>
+              </article>
+            </li>
+            <li class="slot">
+              <div class="rail"></div>
+              <article class="ticket cs" style="--tilt: 0.9deg">
+                <div class="top"><span>No. 04</span><span>Schaeffler · 2024</span></div>
+                <h3><a href="#">Taking the setup sheet off paper</a></h3>
+                <dl>
+                  <div><dt class="k">The problem</dt><dd>Setup sheets were paper: no versions, no access control, each one rewritten from scratch.</dd></div>
+                  <div><dt class="k">My call</dt><dd>Build the structure paper lacked; drop into custom Java where low-code was the bottleneck.</dd></div>
+                  <div><dt class="k">The proof</dt><dd class="proof"><b>96%</b><span>throughput, custom Java</span></dd></div>
+                </dl>
+                <span class="more">Read the whole story <span aria-hidden="true">→</span></span>
+              </article>
+            </li>
+          </ul>
+        </div>
+
+        <!-- ===================== B, the bench ===================== -->
+        <p class="label row-label">B · the bench: computation sheets, clipped (recommended)</p>
+        <div class="choice">
+          <span class="pin" style="left: -32px; top: 0">3</span>
+          <ul class="sheets" style="list-style: none; padding: 0; margin: 0">
+            <li>
+              <article class="sheet cs" data-paper style="--tilt: -0.5deg">
+                <span class="clip" aria-hidden="true"></span>
+                <div class="block"><div><span class="k">Project</span>DoorDash, Inc. · 2026</div><div><span class="k">Sheet</span>1 of 4</div></div>
+                <div class="body">
+                  <h3><a href="#">The one-hour feasibility question</a></h3>
+                  <dl>
+                    <div><dt class="k">The problem</dt><dd>Knowing whether a retailer's catalog could support an integration took days, by hand.</dd></div>
+                    <div><dt class="k">My call</dt><dd>Run independent strategies in parallel and cross-check them, instead of one pipeline.</dd></div>
+                    <div><dt class="k">The proof</dt><dd class="proof"><b>2 → 25</b><span>onboarded merchants/month</span></dd></div>
+                  </dl>
+                  <span class="more">Read the whole story <span aria-hidden="true">→</span></span>
+                </div>
+              </article>
+            </li>
+            <li>
+              <article class="sheet cs" data-paper style="--tilt: 0.6deg">
+                <span class="clip" aria-hidden="true"></span>
+                <div class="block"><div><span class="k">Project</span>DoorDash, Inc. · 2025</div><div><span class="k">Sheet</span>2 of 4</div></div>
+                <div class="body">
+                  <h3><a href="#">Thirty scrapers in a week</a></h3>
+                  <dl>
+                    <div><dt class="k">The problem</dt><dd>Every scraper was a one-off, so more retailers meant more bespoke things to keep alive.</dd></div>
+                    <div><dt class="k">My call</dt><dd>Standardise the workflow and validation first; rebuild the worst scraper against it as proof.</dd></div>
+                    <div><dt class="k">The proof</dt><dd class="proof"><b>17h → 3m</b><span>3.9% → 0% error</span></dd></div>
+                  </dl>
+                  <span class="more">Read the whole story <span aria-hidden="true">→</span></span>
+                </div>
+              </article>
+            </li>
+            <li>
+              <article class="sheet cs" data-paper style="--tilt: 0.4deg">
+                <span class="clip" aria-hidden="true"></span>
+                <div class="block"><div><span class="k">Project</span>University of South Carolina · 2022</div><div><span class="k">Sheet</span>3 of 4</div></div>
+                <div class="body">
+                  <h3><a href="#">Three million records, unattended</a></h3>
+                  <dl>
+                    <div><dt class="k">The problem</dt><dd>Millions of records over months, unattended, from sites that push back on automation.</dd></div>
+                    <div><dt class="k">My call</dt><dd>Do the expensive work inside the page, and walk the network breadth-first.</dd></div>
+                    <div><dt class="k">The proof</dt><dd class="proof"><b>3M+</b><span>records, unattended</span></dd></div>
+                  </dl>
+                  <span class="more">Read the whole story <span aria-hidden="true">→</span></span>
+                </div>
+              </article>
+            </li>
+            <li>
+              <article class="sheet cs" data-paper style="--tilt: -0.7deg">
+                <span class="clip" aria-hidden="true"></span>
+                <div class="block"><div><span class="k">Project</span>Schaeffler Group · 2024</div><div><span class="k">Sheet</span>4 of 4</div></div>
+                <div class="body">
+                  <h3><a href="#">Taking the setup sheet off paper</a></h3>
+                  <dl>
+                    <div><dt class="k">The problem</dt><dd>Setup sheets were paper: no versions, no access control, each one rewritten from scratch.</dd></div>
+                    <div><dt class="k">My call</dt><dd>Build the structure paper lacked; drop into custom Java where low-code was the bottleneck.</dd></div>
+                    <div><dt class="k">The proof</dt><dd class="proof"><b>96%</b><span>throughput, custom Java</span></dd></div>
+                  </dl>
+                  <span class="more">Read the whole story <span aria-hidden="true">→</span></span>
+                </div>
+              </article>
+            </li>
+          </ul>
+        </div>
+
+        <div class="notes">
+          <h2>What the pins say</h2>
+          <p><b>1.</b> The heading is the Chapter role on the sky, like the Journey's; the lead is my italic. Both are drafts (review page).</p>
+          <p><b>2.</b> A, the pass. From 1024 one rail carries the four tickets in a row; below it the pass is a tall back-board with a rail over each ticket. Outdoors a rail needs something to stand on, so A needs a new drawing: a stall's plank on two posts. Thermal paper is light in both themes (the receipt's inks). The tickets are narrow, about 250px at 1440, so the lines run short.</p>
+          <p><b>3.</b> B, the bench. Paper lying on the ground, like the postcard and the card, so it needs no support; a binder clip and the pad's title block ("Sheet 1 of 4") are the only new drawing. 2 × 2 from 640, one column below. Wider paper reads better, and the precise grid sits apart from the organic oak that follows. <b>Recommended.</b></p>
+          <p>Either way: the whole paper is one link (the title, stretched), named by the title; "Read the whole story" is its visible cue, not a second link. Tone <code>base</code>; no <code>--mark</code>, no <code>--control</code> (the hero's ticket button shares the screen). Server-rendered, no new JavaScript. Each paper is <code>#work-&lt;id&gt;</code>, so old links to a case study land here.</p>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

@@ -281,9 +281,9 @@ export function buildDocuments(): Document[] {
     }
   }
 
-  // Round 18: Selected Work is gone; its case studies render inside the
-  // rows of the roles that produced them, on the Record since round 21 phase 5,
-  // so these documents link to `#record`. The `label()`
+  // Round 18: Selected Work went, and its case studies lived on the Record
+  // (the Diary) until round 32 brought the featured ones back as Work: those
+  // link to `#work`, the rest to `#record` (`home`, below). The `label()`
   // calls below still pass "work" as their first argument on purpose: that
   // argument picks the vocabulary in `sectionExpansions`, which is what a
   // query matches against, and is not the link target. Re-keying it would
@@ -294,13 +294,17 @@ export function buildDocuments(): Document[] {
   // name is the subject's identity, not boilerplate this file writes (compare
   // `source`, in answers.ts).
   for (const project of projectsIndexable) {
+    // Round 32: a featured case study is shown in Work, so its passages send
+    // "More on this in …" there; the others stay with the Diary.
+    const home = project.featured
+      ? ({ sectionId: "work", sectionLabel: "Work" } as const)
+      : ({ sectionId: "record", sectionLabel: "Diary" } as const);
     const where = project.organization ? `${project.title} — ${project.organization}` : project.title;
 
     docs.push({
       text: project.problem,
       source: `${where}, the problem`,
-      sectionId: "record",
-      sectionLabel: "Diary",
+      ...home,
       label: label(
         "work",
         project.id,
@@ -315,8 +319,7 @@ export function buildDocuments(): Document[] {
     docs.push({
       text: project.learned,
       source: `${where}, what it taught me`,
-      sectionId: "record",
-      sectionLabel: "Diary",
+      ...home,
       // "wrong", "mistake" and "hindsight" belong here rather than on the
       // project: this is the one passage per project that actually answers
       // "did anything go wrong", and at subject level the words would land on
@@ -334,8 +337,7 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: claim,
         source: `${where}, evidence`,
-        sectionId: "record",
-        sectionLabel: "Diary",
+        ...home,
         label: label("work", project.id, project.title, project.organization ?? "", "result impact outcome proof evidence"),
       });
     }
@@ -382,8 +384,7 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: project.assumption,
         source: `${where}, the assumption it rested on`,
-        sectionId: "record",
-        sectionLabel: "Diary",
+        ...home,
         label: label(
           "work",
           project.id,
@@ -411,8 +412,7 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: path,
         source: `${where}, the paths explored`,
-        sectionId: "record",
-        sectionLabel: "Diary",
+        ...home,
         label: label(
           "work",
           project.id,
@@ -427,8 +427,7 @@ export function buildDocuments(): Document[] {
       docs.push({
         text: `${metric.label}: ${metric.before} → ${metric.after}.`,
         source: metric.source,
-        sectionId: "record",
-        sectionLabel: "Diary",
+        ...home,
         label: label(
           "work",
           project.id,
