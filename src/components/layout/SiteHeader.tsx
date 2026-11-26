@@ -1,5 +1,6 @@
 import { careerEntries, contactCopy, profile } from "@/content/portfolio";
 import { buildTickets } from "@/lib/highlights";
+import { SHOWN } from "@/lib/showcase";
 import SiteNav from "./SiteNav";
 import ThemeToggle from "./ThemeToggle";
 
@@ -33,6 +34,7 @@ const HOME = "/";
  *  island only receives four strings. */
 const STOP_FACTS: Readonly<Record<string, string>> = {
   about: profile.title,
+  work: `${SHOWN.length} case studies`,
   tree: `${buildTickets().length} tags`,
   record: `${careerEntries.length} entries`,
   contact: contactCopy.postcard.place,
@@ -79,6 +81,28 @@ export default function SiteHeader() {
             <SiteNav facts={STOP_FACTS} />
             <ThemeToggle />
           </div>
+
+          {/* My résumé, from 1024 (round 32): the phone menu's own taped slip,
+              a fourth bit of paper between the strip and the stamp. Outside
+              the Primary nav (it is not a section) and server-rendered: a
+              plain link to the PDF, like the menu's. Below 1024 the menu has it. */}
+          {profile.resumePdf ? (
+            <a
+              href={profile.resumePdf}
+              className="group pointer-events-auto relative mt-2 hidden min-h-11 items-center active:translate-y-px lg:inline-flex"
+            >
+              <span
+                data-paper=""
+                className="relative inline-flex h-9 -rotate-1 items-baseline gap-2 bg-surface px-3.5 pt-[9px] shadow-(--shadow-pinned) font-display text-[length:var(--step--1)] font-semibold text-fg transition-colors duration-150 group-hover:text-accent"
+              >
+                <span aria-hidden="true" className="nav-tape nav-tape-l" />
+                Résumé
+                <span aria-hidden="true" className="font-mono text-[12px] font-normal text-fg-muted">
+                  PDF
+                </span>
+              </span>
+            </a>
+          ) : null}
 
           {/* A postage stamp, not a button: it shares every screen with the
               page, including Contact, whose send button is the one primary

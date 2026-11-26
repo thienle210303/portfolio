@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LeadForm from "@/sections/Contact/LeadForm";
 import { BoardStamp, PostcardStamps, stampDate } from "@/sections/Contact/SentStamp";
 import { contactCopy, profile } from "@/content/portfolio";
+import { LEAD_ERRORS, NOTE_MAX } from "@/lib/contact";
 
 const PAIR_ERROR = "Add an email or a phone number so I can reach you.";
 
@@ -27,14 +28,45 @@ const send = () => screen.getByRole("button", { name: contactCopy.send });
 afterEach(() => vi.unstubAllGlobals());
 
 describe("the lead form", () => {
-  it("asks for a name and an email or phone, and nothing else", () => {
+  it("asks for a name and an email or phone, and takes an optional note", () => {
     const { container } = render(<LeadForm emailDeliveryConfigured={true} />);
     expect(screen.getByRole("heading", { name: contactCopy.formHeading })).toBeInTheDocument();
     expect(screen.getByText(contactCopy.formNote)).toBeInTheDocument();
     expect(nameField()).toBeRequired();
     expect(emailField()).toHaveAttribute("type", "email");
     expect(phoneField()).toHaveAttribute("type", "tel");
-    expect(container.querySelector("textarea")).toBeNull();
+    // Round 32: one textarea, the note, never required, capped, with its hint.
+    const areas = container.querySelectorAll("textarea");
+    expect(areas).toHaveLength(1);
+    const note = screen.getByLabelText(contactCopy.fields.note);
+    expect(note).toBe(areas[0]);
+    expect(note).not.toBeRequired();
+    expect(note).toHaveAttribute("maxlength", String(NOTE_MAX));
+    expect(note).toHaveAccessibleDescription(contactCopy.noteHint);
+  });
+
+  it("sends the note with the lead, and stops one too long or not plain text", async () => {
+    const spy = stubFetch(200, { ok: true });
+    const user = userEvent.setup();
+    render(<LeadForm emailDeliveryConfigured={true} />);
+    await user.type(nameField(), "Jamie");
+    await user.type(emailField(), "jamie@example.com");
+    const note = screen.getByLabelText(contactCopy.fields.note);
+    // A note with a control character is not plain text; typed by a script.
+    fireEvent.change(note, { target: { value: "Hi\u0007" } });
+    await user.click(send());
+    expect(spy).not.toHaveBeenCalled();
+    expect(note).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText(LEAD_ERRORS.noteText)).toBeInTheDocument();
+    fireEvent.change(note, { target: { value: "Hiring for a data role.\nCan we talk?" } });
+    await user.click(send());
+    expect(sentBody(spy)).toEqual({
+      name: "Jamie",
+      email: "jamie@example.com",
+      phone: "",
+      note: "Hiring for a data role.\nCan we talk?",
+      website: "",
+    });
   });
 
   it("says before they try that email or phone is one requirement, marked once", () => {
@@ -102,7 +134,7 @@ describe("the lead form", () => {
     await user.type(emailField(), "jamie@example.com");
     await user.click(send());
 
-    expect(sentBody(spy)).toEqual({ name: "Jamie", email: "jamie@example.com", phone: "", website: "" });
+    expect(sentBody(spy)).toEqual({ name: "Jamie", email: "jamie@example.com", phone: "", note: "", website: "" });
     expect(await screen.findByRole("status")).toHaveTextContent(contactCopy.success);
     expect(screen.getByRole("status")).toHaveFocus();
     expect(nameField()).toHaveValue("");

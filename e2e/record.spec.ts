@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { careerEntries, certifications, record } from "../src/content/portfolio";
 import { diaryPages, kindCounts, recordYears } from "../src/lib/record";
+import { oncePerEngine } from "./once";
 
 // The Diary: a book whose pages turn (round 24; round 23 swiped them). With
 // JavaScript and motion welcome the pages are leaves (`data-mode="leaf"`); with
@@ -23,7 +24,7 @@ const PAGES = diaryPages();
 const COUNTS = kindCounts();
 
 test.beforeEach(({}, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+  test.skip(!oncePerEngine(testInfo), "pins its own viewports; run once");
 });
 
 async function open(page: Page, theme: "day" | "night" = "day", hash = "") {
@@ -131,7 +132,8 @@ test.describe("the Diary", () => {
     await page.setViewportSize(WIDE);
     await open(page);
     const order = await page.evaluate(() => [...document.querySelectorAll("main > section")].map((s) => s.id));
-    expect(order).toEqual(["about", "tree", "record", "contact"]);
+    // Round 32: Work came back after About.
+    expect(order).toEqual(["about", "work", "tree", "record", "contact"]);
     await expect(page.locator('header nav a[href="/#record"]').first()).toHaveText("Diary");
     await expect(page.locator("#record-heading")).toContainText(record.name);
     await expect(page.locator("#record-heading")).toContainText(record.pressed.heading);
@@ -187,7 +189,8 @@ test.describe("the Diary", () => {
     expect(await onShow(page)).toEqual(["summary"]);
   });
 
-  test("under reduced motion the book is the track: native scroll is the swipe, it snaps, and the counter follows", async ({ page }) => {
+  test("under reduced motion the book is the track: native scroll is the swipe, it snaps, and the counter follows", async ({ page, browserName }) => {
+    test.fixme(browserName === "webkit", "WebKit snaps a wheel step to the next page, a directional scroll CSS Scroll Snap allows; a short trackpad swipe in Safari is not this synthetic event");
     await page.emulateMedia({ reducedMotion: "reduce" });
     for (const size of [WIDE, PHONE]) {
       await page.setViewportSize(size);
@@ -821,7 +824,9 @@ test.describe("the Diary", () => {
     }
   });
 
-  test("a finger swipes the page over; a finger going down the page scrolls it", async ({ browser }) => {
+  test("a finger swipes the page over; a finger going down the page scrolls it", async ({ browser, browserName }) => {
+    // Real touches are sent through the DevTools protocol, which is Chromium's.
+    test.skip(browserName !== "chromium", "touch is driven over CDP, Chromium only");
     const context = await browser.newContext({ viewport: PHONE, hasTouch: true });
     const page = await context.newPage();
     await open(page);
@@ -911,7 +916,8 @@ test.describe("the Diary", () => {
     }
   });
 
-  test("Tab stays on the pages on show; a page out of the window is not in the tab order", async ({ page }) => {
+  test("Tab stays on the pages on show; a page out of the window is not in the tab order", async ({ page, browserName }) => {
+    test.fixme(browserName === "webkit", "WebKit on macOS moves Tab to links only with Option+Tab (Full Keyboard Access off)");
     await page.setViewportSize(WIDE);
     await open(page);
     await track(page).evaluate((el) => el.scrollIntoView({ block: "start" }));
@@ -1008,12 +1014,14 @@ test.describe("the Diary", () => {
   });
 
   test("the Journey's tags land on their pages", async ({ page }) => {
+    // Round 32: a tag with a case study opens its own page; Wordification's
+    // has none, so it still lands here.
     await page.setViewportSize(WIDE);
     await open(page);
-    await page.locator('[data-hanging-tags] a[href="#journey-entry-schaeffler"]').click();
+    await page.locator('[data-hanging-tags] a[href="#journey-entry-wordification"]').click();
     await settledLeft(page);
-    expect(await inWindow(page, "#journey-entry-schaeffler")).toBe(true);
-    expect(Math.abs((await restingTop(page, "#journey-entry-schaeffler")) - ROW_TOP)).toBeLessThanOrEqual(2);
+    expect(await inWindow(page, "#journey-entry-wordification")).toBe(true);
+    expect(Math.abs((await restingTop(page, "#journey-entry-wordification")) - ROW_TOP)).toBeLessThanOrEqual(2);
     // Nothing on the Journey links to an id it no longer holds.
     const hrefs = await page.locator("#tree a[href^='#']").evaluateAll((as) => as.map((a) => a.getAttribute("href")!));
     for (const href of hrefs) {
@@ -1177,7 +1185,8 @@ test.describe("the Diary", () => {
     }
   });
 
-  test("an award opens from its page", async ({ page }) => {
+  test("an award opens from its page", async ({ page, browserName }) => {
+    test.fixme(browserName === "webkit", "Safari does not focus a button on click");
     await page.setViewportSize(WIDE);
     await open(page, "day", "#journey-entry-code-to-give");
     await settledLeft(page);
@@ -1226,7 +1235,7 @@ test.describe("the Diary", () => {
     const names = await plain.locator("#record .diary-slot > .diary-page").first().evaluate((el) => getComputedStyle(el).animationName);
     expect(names).toContain("diary-in");
     // Flat when it is fully in view.
-    expect(await plain.locator("#record #diary-summary").evaluate((el) => getComputedStyle(el).transform)).toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
+    expect(await plain.locator("#record #diary-summary").evaluate((el) => getComputedStyle(el).transform)).toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\)|matrix3d\(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1\))$/);
     await context.close();
 
     await page.setViewportSize(WIDE);

@@ -14,7 +14,9 @@ reference: [README.md](README.md).
 - No database, no CMS, no component library. Every component under
   `src/components` and `src/sections` is bespoke — don't reach for a
   dependency to replace one without discussing it first.
-- The postcard's lead form (name plus an email or phone, no message) sends
+- The postcard's lead form (name plus an email or phone, and an optional note
+  since round 32, Thien's call: ruled lines under the pair, 1,000 characters,
+  plain text, in my own copy of the lead only) sends
   through Resend and nothing else; it never opens the visitor's mail app. When
   `RESEND_API_KEY` / `CONTACT_TO_EMAIL` / `CONTACT_FROM_EMAIL` aren't all set
   (read at build time, see `.env.example`) or a send fails, it says so in
@@ -161,7 +163,11 @@ settle.
 
 ## Changing what the site says
 
-The page is four sections, in this order: About (`#about` — the hero: my headline and two actions under a
+The page is five sections, in this order: About (`#about` — the hero: my name line
+(round 32: my name, title and `profile.specialty` over the h1; from 1024 it takes
+the row the hint had, and the hint ("This line runs…") moves up into the sky over
+the line it describes, so nothing under it moves and the first-screen e2e still
+hold), my headline and two actions ("See what I've built" lands on `#work`) under a
 clothesline of four chapters that turn over to my line about each, each
 hung as the thing it was (round 28: a rice seed packet, a boarding-pass stub, a
 library card, a receipt; two clothespinned to the line, two on strings; the
@@ -260,8 +266,22 @@ kind and dates, a sentence or two, the oak's highlight in `--accent`, two to
 four bullets, a small chart drawn from `diary.figure`, a fun fact on a sticky
 note); the ones with little to say share a page, three at most. The tabs
 (All / Work / Study / Milestones) re-bind the book to one kind and recount the
-pages. There are no case studies on the page: `projects` stays in the content
-layer for the chat and `/resume`) and Contact
+pages. The case studies are not in the Diary: the featured ones are Work, below),
+Work (`#work`, round 32, right after About: Thien, on text cards first drawn for
+it, "I want to show case instead of bunch of text… Nobody is read it". Each
+`featured` project with a `showcase` is one sheet of computation paper (`bg-surface`,
+a binder clip, the pad's title block from its oak tag): a drawing computed from its
+own numbers (`src/sections/Work/Exhibit.tsx`: four strategies into a verdict, a
+race to scale, rings walked breadth-first, paper into versions, and the Diary's
+own bars and marks via `DiaryFigure`), one number in `--accent`, one line; the
+title is the one link, stretched over the sheet, to `/work/<id>`. A drawing plays
+when its sheet is seen (InkReveal's `[data-inked]`; drawn still under reduced
+motion or with JS off). `/work/<id>` is the same story at length: the lead
+drawing, the rest of its figures and numbers, its `workflow` as a before and an
+after, three of my calls as taped notes, and every word of the write-up closed
+under "The long version". Every figure a showcase shows is in its project's own
+metrics or proof or its entry's impact (`tests/lib/showcase.test.ts`). Server
+only, plain `<a>`s. No section ids on a `/work` page) and Contact
 (`#contact`, round 21's postcard: my business card beside a postcard whose
 address side is the lead form, always visible, and the chat at `#ask`. From
 1280 it is one desk (round 28): the card clipped over the postcard's corner and
@@ -270,17 +290,21 @@ below 1280 the chat is a strip under everything. The chat's sheet lays itself
 out by its own width (`@container/ask`). Where the postcard stacks, the address
 side comes first and the picture is a band under the form. By day the lanterns
 are unlit paper, so the screen's reds are the flag stamp and my seal).
-`navItems` in `src/content/portfolio.ts` is the same four items in the same
+`navItems` in `src/content/portfolio.ts` is the same five items in the same
 order; the nav doubles as the page's table of contents (and the cats' guided
-tour visits the same four).
+tour visits the same five). The header's strip carries them, and from 1024 a
+taped Résumé slip (the phone menu's own) sits between the strip and the stamp,
+outside the Primary nav (round 32); on a phone a stop is 56px so five fit with
+the slips at 320×568.
 
-The retired ids — `#journey`, `#work`, `#skills`, `#workshop`, `#worlds`, every
+The retired ids — `#journey`, `#skills`, `#workshop`, `#worlds`, every
 `journey-entry-<id>` and every `work-<projectId>` — are all still in the
 server-rendered HTML and land with JavaScript off (`e2e/legacy-anchors.spec.ts`):
-`#journey`, `#skills` and `#workshop` on the Journey; `#work` (DoorDash's page, where
-the case studies mostly were), `#diary`, `#record-<year>` and every
-`journey-entry-<id>` / `work-<projectId>` on the Diary's pages (a real, zero-height
-element at the top of its page; see `Anchor` in `EntryPage.tsx`);
+`#journey`, `#skills` and `#workshop` on the Journey; `#work` is the Work section
+itself again (round 32) and a featured project's `work-<projectId>` is its sheet
+there; `#diary`, `#record-<year>`, every `journey-entry-<id>` and the
+`work-<projectId>` of every project Work does not show on the Diary's pages (a
+real, zero-height element at the top of its page; see `Anchor` in `EntryPage.tsx`);
 `#worlds` on About via `src/sections/Hero/anchors.ts`. Nothing on the page links
 to most of them; they exist for inbound links the site does not control, so
 "unreferenced" is not a reason to delete one.
@@ -353,9 +377,9 @@ the Diary's pages. They are in git history; do not bring a second tree back.
   or was skipped.
 - **The Diary's pages own the fragments.** An entry with a page of its own is
   `journey-entry-<id>` itself (`src/sections/Record/EntryPage.tsx`); one on a
-  shared page is a block on it. The case studies' `work-<projectId>` ids are
-  zero-height spans on the page of the entry they were built in; the tags link
-  there. A fragment is a scroll in the book's own track, which the browser does
+  shared page is a block on it. A tag whose figure is a shown case study opens
+  that case study's page, `/work/<id>` (round 32); the others link to their
+  entry's page here. A fragment is a scroll in the book's own track, which the browser does
   with JavaScript off (the left page's targets carry a `scroll-margin` over to the
   right page, or a two-page window would tie between two snap points: see
   `--turn` in globals.css). With the leaves (round 24) the book opens at the
@@ -471,7 +495,9 @@ shares with the root's `opengraph-image`, and a page that sets its own
 `openGraph` spreads `OPEN_GRAPH_BASE` and names `SHARE_IMAGE` (a page's
 `openGraph` replaces the layout's whole). The card (round 31) hangs the oak's first ticket beside the h1 in the morning sky; it and the two icons are drawn by `next/og` from static TTFs in `assets/fonts/` and `public/scenery` drawings recoloured by `src/lib/share-image.ts` (Satori has no masks and no aliases, so their colours are literals named for their tokens), and `SHARE_IMAGE.alt` says what the card shows. Production is indexed; a Vercel
 preview says noindex, its robots.txt disallows everything and its sitemap is
-empty (`INDEXABLE`). The sitemap lists `/` and `/resume`; robots keeps out of
+empty (`INDEXABLE`). The sitemap lists `/`, `/resume` and each `/work/<id>`
+(round 32; a work page's description is its `tagline`, ≤ 160, and any other id is
+the noindex 404 via `dynamicParams = false`); robots keeps out of
 `/api/`. A missing page is `src/app/not-found.tsx`, in my voice, noindex and
 with no canonical. `next.config.ts` sends no `X-Powered-By` and a few headers
 (frame-ancestors self, nosniff, referrer policy, permissions policy); there is
@@ -509,9 +535,22 @@ Run `pnpm verify` (typecheck → lint → contrast → test → build). For UI c
 also run `pnpm dev` and check the change in a real browser **in both themes**,
 then run `pnpm test:e2e` (Playwright + axe-core) — it audits both themes and
 all three tones, and checks keyboard nav, focus restoration, reduced motion,
-horizontal overflow at 320–1440px (seven projects: 320, 375, 390, 768, 1024,
-1280, 1440) and, in `clipping.spec.ts`, that no visible text is cut off at
-the nine widths from 320 to 1920.
+horizontal overflow at 320–1440px (seven Chromium projects: 320, 375, 390, 768,
+1024, 1280, 1440) and, in `clipping.spec.ts`, that no visible text is cut off at
+the nine widths from 320 to 1920. Since round 32 it also runs WebKit (390,
+1440), locally (there is no CI): every test that is not gated runs there too,
+and a test that sets its own viewports runs once per engine or once overall
+(`e2e/once.ts`). Where WebKit's engine really differs, a test is `test.fixme`
+for WebKit with what differs: Tab skips links (and buttons) without Option+Tab,
+a click does not focus a button, a reload goes back to the URL's fragment, a
+wheel step snaps to the next page. The fragment landings it found were the
+site's: Safari has no scroll anchoring and clamps the window's scroll when the
+document is briefly shorter, so the Diary's `measure()` and the chat's swap
+(`AskLoader`) put the reader's scroll back, and a Work sheet's id is on its
+untilted item.
+Firefox (1440) is opt-in, `E2E_FIREFOX=1`: its headless build cannot start on
+this Mac. Needs `pnpm exec playwright install webkit firefox` once, and Node ≥
+22.12 (`engines`; the shell's default nvm Node may be older).
 
 For any UI change, also run `pnpm build && pnpm shots <label>` and look at the
 contact sheet in `design/.shots/<label>/index.html` (nine widths, day and

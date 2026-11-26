@@ -3,7 +3,7 @@ import { projects, record } from "@/content/portfolio";
 import { cn } from "@/lib/cn";
 import { entryBlurb, entryHighlight, entryTitle, KIND_WORD, recordYearId } from "@/lib/record";
 import type { CareerEntry } from "@/types/portfolio";
-import { caseStudyAnchorId, journeyEntryAnchorId, RECORD_WORK_ENTRY_ID } from "@/sections/CareerTree/anchors";
+import { caseStudyAnchorId, journeyEntryAnchorId } from "@/sections/CareerTree/anchors";
 import ProjectRecording from "@/sections/CareerTree/ProjectRecording";
 import DiaryFigure from "./DiaryFigure";
 import { ImageDialog } from "./ImageDialog";
@@ -88,14 +88,14 @@ function Eyebrow({ entry }: { readonly entry: CareerEntry }) {
   );
 }
 
-/** The zero-size anchors an entry answers besides its own fragment: its case
- *  studies' retired `work-<projectId>` ids, and `#work` on DoorDash. */
+/** The zero-size anchors an entry answers besides its own fragment: the
+ *  `work-<projectId>` ids of its projects that the Work section does not show
+ *  (a featured one's id is its sheet there, round 32). */
 function LegacyAnchors({ entry }: { readonly entry: CareerEntry }) {
   return (
     <>
-      {entry.id === RECORD_WORK_ENTRY_ID ? <Anchor id="work" /> : null}
       {projects
-        .filter((p) => p.careerEntryId === entry.id)
+        .filter((p) => p.careerEntryId === entry.id && !p.featured)
         .map((p) => (
           <Anchor key={p.id} id={caseStudyAnchorId(p.id)} />
         ))}

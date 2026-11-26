@@ -6,17 +6,17 @@ import { journeySpots } from "../../scripts/draw-scenery.mjs";
 const links = () => [...document.querySelectorAll<HTMLAnchorElement>("[data-hanging-tags] > ul a")];
 
 describe("HangingTags", () => {
-  it("hangs five tags in board order, each a link to its row", () => {
+  it("hangs five tags in board order, each a link to its case study or its row", () => {
     render(<HangingTags />);
     const list = document.querySelector("[data-hanging-tags] > ul") as HTMLElement;
     expect(list).toHaveAttribute("aria-label", "What I measured");
     const items = within(list).getAllByRole("listitem");
     expect(items).toHaveLength(5);
     expect(items.map((li) => li.querySelector("a")!.getAttribute("href"))).toEqual([
-      "#journey-entry-doordash",
+      "/work/dd-scraper-platform",
       "#journey-entry-wordification",
-      "#journey-entry-schaeffler",
-      "#journey-entry-usc-scraping",
+      "/work/schaeffler-setup-sheets",
+      "/work/usc-research-collection",
       "#journey-entry-usc-ta",
     ]);
   });
@@ -53,7 +53,7 @@ describe("HangingTags", () => {
     expect(ticket.querySelectorAll("[data-perforation]")).toHaveLength(1);
     expect(ticket.querySelector("[data-perforation]")).toHaveAttribute("aria-hidden", "true");
     const hrefs = [...ticket.querySelectorAll("a")].map((a) => a.getAttribute("href"));
-    expect(hrefs).toEqual(["#journey-entry-doordash", "#work-dd-feasibility-agent"]);
+    expect(hrefs).toEqual(["/work/dd-scraper-platform", "/work/dd-feasibility-agent"]);
   });
 
   it('a screen reader hears "to", not an arrow', () => {

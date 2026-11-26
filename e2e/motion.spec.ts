@@ -146,8 +146,9 @@ test.describe("motion (round 21 phase 8)", () => {
     await page.waitForLoadState("networkidle");
     await page.getByRole("link", { name: "See what I've built" }).click();
     await page.waitForFunction(() => !document.documentElement.hasAttribute("data-glide"));
-    expect(new URL(page.url()).hash).toBe("#tree");
-    const top = await page.locator("#tree").evaluate((el) => el.getBoundingClientRect().top);
+    // Round 32: the primary action lands on Work.
+    expect(new URL(page.url()).hash).toBe("#work");
+    const top = await page.locator("#work").evaluate((el) => el.getBoundingClientRect().top);
     expect(Math.abs(top - 80)).toBeLessThan(4);
     // Back is the browser's history entry.
     await page.goBack();

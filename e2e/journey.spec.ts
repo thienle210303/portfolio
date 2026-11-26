@@ -1,6 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { journey } from "../src/content/portfolio";
 import { TAG_SPOTS } from "../src/sections/CareerTree/HangingTags";
+import { oncePerEngine } from "./once";
 
 // Round 21 Phase 4: the Journey opens with the oak (NatJourney). Each test pins
 // its own viewport rather than running per project.
@@ -163,18 +164,19 @@ const focusHeading = (page: Page) =>
     (el as HTMLElement).focus();
   });
 
+// Round 32: a tag whose figure is a shown case study opens its page.
 const TAB_ORDER = [
-  "#journey-entry-doordash",
-  "#work-dd-feasibility-agent",
+  "/work/dd-scraper-platform",
+  "/work/dd-feasibility-agent",
   "#journey-entry-wordification",
-  "#journey-entry-schaeffler",
-  "#journey-entry-usc-scraping",
+  "/work/schaeffler-setup-sheets",
+  "/work/usc-research-collection",
   "#journey-entry-usc-ta",
 ];
 
 test.describe("the Journey", () => {
   test.beforeEach(({}, testInfo) => {
-    test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+    test.skip(!oncePerEngine(testInfo), "pins its own viewports; run once");
   });
 
   for (const viewport of [WIDE, PHONE]) {
@@ -411,7 +413,8 @@ test.describe("the Journey", () => {
   });
 
   for (const viewport of [WIDE, TABLET, PHONE]) {
-    test(`tab order at ${viewport.width}`, async ({ page }) => {
+    test(`tab order at ${viewport.width}`, async ({ page, browserName }) => {
+      test.fixme(browserName === "webkit", "WebKit on macOS moves Tab to links only with Option+Tab (Full Keyboard Access off)");
       await page.setViewportSize(viewport);
       await open(page);
       await focusHeading(page);
@@ -428,7 +431,8 @@ test.describe("the Journey", () => {
   }
 
   for (const theme of ["day", "night"] as const) {
-    test(`focus is visible on every tag and on Watch it grow, ${theme}`, async ({ page }) => {
+    test(`focus is visible on every tag and on Watch it grow, ${theme}`, async ({ page, browserName }) => {
+      test.fixme(browserName === "webkit", "WebKit on macOS moves Tab to links only with Option+Tab (Full Keyboard Access off)");
       await page.setViewportSize(WIDE);
       await open(page, theme);
       await focusHeading(page);
@@ -446,24 +450,21 @@ test.describe("the Journey", () => {
     });
   }
 
-  test("a tag lands on its page of the Diary", async ({ page }) => {
+  test("a tag without a case study lands on its page of the Diary", async ({ page }) => {
     await page.setViewportSize(WIDE);
     await open(page);
-    await page.locator('[data-hanging-tags] a[href="#journey-entry-schaeffler"]').click();
-    expect(Math.abs((await restingTop(row(page, "schaeffler"))) - ROW_TOP)).toBeLessThanOrEqual(2);
-    expect(await inBook(page, "schaeffler"), "the book is on another page").toBe(true);
+    await page.locator('[data-hanging-tags] a[href="#journey-entry-wordification"]').click();
+    expect(Math.abs((await restingTop(row(page, "wordification"))) - ROW_TOP)).toBeLessThanOrEqual(2);
+    expect(await inBook(page, "wordification"), "the book is on another page").toBe(true);
   });
 
-  test("the stub lands on DoorDash's page, where its case study was", async ({ page }) => {
+  test("the stub opens its case study's page", async ({ page }) => {
+    // Round 32: "The one-hour feasibility question" is a page of its own.
     await page.setViewportSize(WIDE);
     await open(page);
-    await page.locator('[data-hanging-tags] a[href="#work-dd-feasibility-agent"]').click();
-    // The case study is not drawn any more (round 23); its id is a real, zero-height
-    // element at the top of DoorDash's page, at the header offset.
-    const study = page.locator("#work-dd-feasibility-agent");
-    expect(Math.abs((await restingTop(study)) - ROW_TOP)).toBeLessThanOrEqual(2);
-    await expect(page.locator("#journey-entry-doordash #work-dd-feasibility-agent")).toHaveCount(1);
-    expect(await inBook(page, "doordash"), "the book is on another page").toBe(true);
+    await page.locator('[data-hanging-tags] a[href="/work/dd-feasibility-agent"]').click();
+    await expect(page).toHaveURL(/\/work\/dd-feasibility-agent$/);
+    await expect(page.getByRole("heading", { level: 1, name: "The one-hour feasibility question" })).toBeVisible();
   });
 
   for (const viewport of [WIDE, PHONE]) {
@@ -481,7 +482,8 @@ test.describe("the Journey", () => {
   }
 
   for (const viewport of [WIDE, PHONE]) {
-    test(`Watch it grow grows the oak and hangs every tag back at ${viewport.width}`, async ({ page }) => {
+    test(`Watch it grow grows the oak and hangs every tag back at ${viewport.width}`, async ({ page, browserName }) => {
+      test.fixme(browserName === "webkit", "Safari does not focus a button on click");
       await page.setViewportSize(viewport);
       await open(page);
       await page.evaluate(() => {
@@ -827,11 +829,12 @@ test.describe("the Journey", () => {
     await expect(nhiFace(page)).toHaveAttribute("data-nhi", "hug", { timeout: 20_000 });
   });
 
-  test("tags link to rows that exist", async ({ page }) => {
+  test("tags link to rows or case-study pages that exist", async ({ page, request }) => {
     await page.setViewportSize(WIDE);
     await open(page);
     for (const href of await tagLinks(page).evaluateAll((els) => els.map((el) => el.getAttribute("href")!))) {
-      await expect(page.locator(href), href).toHaveCount(1);
+      if (href.startsWith("/work/")) expect((await request.get(href)).status(), href).toBe(200);
+      else await expect(page.locator(href), href).toHaveCount(1);
     }
   });
 });

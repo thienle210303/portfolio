@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="390,768,1440" />
+    <title>Work, shown: four exhibits</title>
+    <link rel="stylesheet" href="board.css" />
+    <link rel="stylesheet" href="work.css" />
+    <link rel="stylesheet" href="exhibits.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 32 v2 (supersedes v1's text cards, at Thien's word: "I want to
+       * show case instead of bunch of text… Nobody is read it"). Each case
+       * study is one exhibit: a drawing computed from its own numbers, a
+       * title, one number, one caption. The story is behind the click.
+       * Direction B (the bench's sheets); a drawing reads well on graph paper.
+       */
+      .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; margin: 18px 0 30px; }
+      .replay { margin-left: auto; font: 600 var(--step--1) / 1 var(--font-sans); min-height: 44px; padding: 0 14px; border: 1.5px solid var(--fg); background: none; color: var(--fg); border-radius: 2px; cursor: pointer; }
+      .ex .draw + .draw { margin-top: 4px; }
+    </style>
+  </head>
+  <body>
+    <section class="section">
+      <div class="shell">
+        <p class="label">Round 32 · v2 · Work, shown</p>
+        <div class="head">
+          <h2 class="chapter">What I built.</h2>
+          <p class="aside">Press one to see how.</p>
+          <button class="replay" type="button" data-replay>Replay the drawings</button>
+        </div>
+
+        <ul class="ex-grid">
+          <li>
+            <article class="sheet ex" data-paper style="--tilt: -0.5deg">
+              <span class="clip" aria-hidden="true"></span>
+              <div class="block"><div><span class="k">DoorDash · 2026</span></div><div><span class="k">1 of 4</span></div></div>
+              <div class="body">
+                <h3><a href="#">The one-hour feasibility question</a></h3>
+                <div class="draw" aria-hidden="true">
+                  <div class="days"><span></span><span></span><span></span><span></span><span></span><span style="border: 0; background: none; width: auto">&nbsp;days, by hand</span></div>
+                  <div class="agents" style="margin-top: 12px">
+                    <span class="node">retailer</span>
+                    <div class="lanes">
+                      <span class="lane"><span>source</span><i></i></span>
+                      <span class="lane"><span>network</span><i></i></span>
+                      <span class="lane"><span>sitemap</span><i></i></span>
+                      <span class="lane"><span>browser</span><i></i></span>
+                    </div>
+                    <span class="node verdict">feasible</span>
+                  </div>
+                </div>
+                <p class="big">&lt; 1 h <small>from days</small></p>
+                <p class="cap">Four strategies at once, cross-checked.</p>
+                <span class="go">See how it works <span aria-hidden="true">→</span></span>
+              </div>
+            </article>
+          </li>
+
+          <li>
+            <article class="sheet ex" data-paper style="--tilt: 0.6deg">
+              <span class="clip" aria-hidden="true"></span>
+              <div class="block"><div><span class="k">DoorDash · 2025</span></div><div><span class="k">2 of 4</span></div></div>
+              <div class="body">
+                <h3><a href="#">Thirty scrapers in a week</a></h3>
+                <div class="draw race" aria-hidden="true">
+                  <div class="lane"><span>HTML crawl</span><span class="track"><span class="bar" style="width: 100%"></span></span><span class="t">17 h</span></div>
+                  <div class="lane"><span>direct API</span><span class="track"><span class="bar after"></span></span><span class="t after">3 min</span></div>
+                </div>
+                <div class="draw tally" aria-hidden="true">
+                  <svg style="--i: 0" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+                  <svg style="--i: 1" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+                  <svg style="--i: 2" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+                  <svg style="--i: 3" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+                  <svg style="--i: 4" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+                  <svg style="--i: 5" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+                  <span>30+ in one week</span>
+                </div>
+                <p class="big">17h → 3m</p>
+                <p class="cap">One legacy scraper, rebuilt on the API.</p>
+                <span class="go">See how it works <span aria-hidden="true">→</span></span>
+              </div>
+            </article>
+          </li>
+
+          <li>
+            <article class="sheet ex" data-paper style="--tilt: 0.4deg">
+              <span class="clip" aria-hidden="true"></span>
+              <div class="block"><div><span class="k">USC research · 2022</span></div><div><span class="k">3 of 4</span></div></div>
+              <div class="body">
+                <h3><a href="#">Three million records, unattended</a></h3>
+                <div class="draw bfs" aria-hidden="true">
+                  <svg viewBox="-75 -75 150 150" data-bfs></svg>
+                  <div>
+                    <span>one ring at a time</span>
+                    <div class="okbar" style="margin-top: 14px"></div>
+                    <span style="display: block; margin-top: 6px">99.9% succeeded, for months</span>
+                  </div>
+                </div>
+                <p class="big">3,000,000+</p>
+                <p class="cap">Breadth-first, unattended, for months.</p>
+                <span class="go">See how it works <span aria-hidden="true">→</span></span>
+              </div>
+            </article>
+          </li>
+
+          <li>
+            <article class="sheet ex" data-paper style="--tilt: -0.7deg">
+              <span class="clip" aria-hidden="true"></span>
+              <div class="block"><div><span class="k">Schaeffler · 2024</span></div><div><span class="k">4 of 4</span></div></div>
+              <div class="body">
+                <h3><a href="#">Taking the setup sheet off paper</a></h3>
+                <div class="draw offpaper" aria-hidden="true">
+                  <div class="stack"><span style="--r: -7deg"></span><span style="--r: 5deg"></span><span style="--r: -2deg"></span></div>
+                  <span style="font-size: 18px; color: var(--fg)">→</span>
+                  <div class="app"><span style="--i: 0"><b>v3</b> current</span><span style="--i: 1">v2</span><span style="--i: 2">v1</span></div>
+                </div>
+                <div class="draw thru" aria-hidden="true">
+                  <div class="lane"><span>paper</span><span class="bar" style="width: 51%"></span></div>
+                  <div class="lane"><span>my Java</span><span class="bar after" style="width: 100%"></span></div>
+                </div>
+                <p class="big">+96% <small>throughput</small></p>
+                <p class="cap">Low-code, and Java where it stalled.</p>
+                <span class="go">See how it works <span aria-hidden="true">→</span></span>
+              </div>
+            </article>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <script>
+      // The breadth-first rings: a seed, then rings of 6, 12 and 18 nodes, each
+      // tied to its nearest node one ring in. Shapes only, no lettering.
+      for (const svg of document.querySelectorAll("[data-bfs]")) {
+        const ns = "http://www.w3.org/2000/svg";
+        const rings = [[{ x: 0, y: 0 }]];
+        [6, 12, 18].forEach((n, k) => {
+          const r = 22 * (k + 1);
+          rings.push(Array.from({ length: n }, (_, i) => {
+            const a = (i / n) * Math.PI * 2 + k * 0.3;
+            return { x: Math.cos(a) * r, y: Math.sin(a) * r };
+          }));
+        });
+        rings.forEach((ring, k) => {
+          if (k === 0) return;
+          for (const p of ring) {
+            const q = rings[k - 1].reduce((b, c) => (Math.hypot(c.x - p.x, c.y - p.y) < Math.hypot(b.x - p.x, b.y - p.y) ? c : b));
+            const l = document.createElementNS(ns, "line");
+            Object.entries({ x1: q.x, y1: q.y, x2: p.x, y2: p.y }).forEach(([a, v]) => l.setAttribute(a, v.toFixed(1)));
+            svg.append(l);
+          }
+        });
+        rings.forEach((ring, k) => {
+          for (const p of ring) {
+            const c = document.createElementNS(ns, "circle");
+            c.setAttribute("cx", p.x.toFixed(1));
+            c.setAttribute("cy", p.y.toFixed(1));
+            c.setAttribute("r", k === 0 ? 5 : 3.6);
+            if (k === 0) c.setAttribute("class", "seed");
+            c.style.setProperty("--ring", k);
+            svg.append(c);
+          }
+        });
+      }
+      // Board-only: replay every drawing's motion.
+      document.querySelector("[data-replay]")?.addEventListener("click", () => {
+        for (const a of document.getAnimations()) { a.cancel(); a.play(); }
+      });
+    </script>
+  </body>
+</html>

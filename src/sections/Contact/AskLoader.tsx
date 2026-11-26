@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 
 /**
  * The chat's lazy boundary in Contact: a placeholder, a visibility trigger
@@ -67,6 +67,10 @@ const SLOT = "px-5 pt-[18px] pb-5 sm:px-[26px]";
 
 export function AskLoader({ liveModeConfigured, heading, placeholder }: Props) {
   const placeholderRef = useRef<HTMLDivElement | null>(null);
+  // Where the reader was when the chat swapped in. The swap's first layout can
+  // be briefly shorter, and Safari clamps the window's scroll to it then (a
+  // cold load of /#ask landed 300px short), so the place is put back.
+  const swapFrom = useRef<number | null>(null);
   const [Chat, setChat] = useState<ChatComponent | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -86,7 +90,10 @@ export function AskLoader({ liveModeConfigured, heading, placeholder }: Props) {
           // getter (see the test file's mock) would become an unhandled
           // rejection instead of landing in `.catch()`.
           const component = mod.default;
-          if (!cancelled) setChat(() => component);
+          if (!cancelled) {
+            swapFrom.current = window.scrollY;
+            setChat(() => component);
+          }
         })
         .catch(() => {
           // Visible, not silent: this is the site's only chat, so a failed
@@ -135,6 +142,12 @@ export function AskLoader({ liveModeConfigured, heading, placeholder }: Props) {
     setLoading(true);
     setAttempt((n) => n + 1);
   }, []);
+
+  useLayoutEffect(() => {
+    const y = swapFrom.current;
+    swapFrom.current = null;
+    if (Chat && y !== null && window.scrollY !== y) window.scrollTo({ top: y, behavior: "instant" });
+  }, [Chat]);
 
   if (Chat) return <Chat liveModeConfigured={liveModeConfigured} heading={heading} />;
 

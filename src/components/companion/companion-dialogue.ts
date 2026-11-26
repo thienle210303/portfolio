@@ -181,6 +181,11 @@ const TOUR: Record<string, SceneBuilder> = {
     grey("Mrp. Mrp.", `${f.tree.entries} entries. ${f.tree.work} were work.`, "paw", "groom"),
     tabby("Mrrrow!", "Napped through it. Counts!", "zzz", "sleep"),
   ],
+  // Round 32: Work joined the nav right after About.
+  work: () => [
+    tabby("Mrrrow!", "Problems he solved. Ooh!", "sparkle", "hop"),
+    grey("Mrp. Mrp.", "Drawn from real numbers.", "paw"),
+  ],
   // Round 21 phase 5: the Record joined the nav, so the tour stops there.
   record: () => [
     grey("Mrp.", "Every year, pressed flat.", "paw"),

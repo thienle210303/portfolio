@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Round 32: the work, first</title>
+    <link rel="stylesheet" href="boards/board.css" />
+    <script src="boards/board.js"></script>
+    <style>
+      .shell-wide { max-width: 1280px; margin: 0 auto; padding: 40px 16px 96px; }
+      section { margin-top: 56px; }
+      section > .label { display: block; margin-bottom: 6px; }
+      img.preview { display: block; width: 100%; height: auto; margin-top: 14px; border-radius: 8px; box-shadow: 0 0 0 1px rgb(29 35 33 / 0.15); }
+      .pair { display: grid; gap: 16px; margin-top: 14px; }
+      @media (width >= 64rem) { .pair { grid-template-columns: 3fr 1fr; align-items: start; } }
+      .pair img { margin-top: 0; }
+      ul { margin: 10px 0 0; padding-left: 1.2em; max-width: 74ch; }
+      li { margin: 6px 0; }
+      table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: var(--step--1); }
+      th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--rule-color); }
+      th { font: 700 var(--step--2) / 1.3 var(--font-mono); letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--fg-muted); }
+      td.draft { font-weight: 600; }
+      td.cut { color: var(--fg-muted); text-decoration: line-through; }
+      .verdict { font: 700 12px / 1 var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; }
+      .decide { background: var(--surface); padding: 18px 20px; border-radius: 2px; box-shadow: 0 2px 3px -1px rgb(30 40 35 / 0.2); }
+      .decide ol { margin: 8px 0 0; padding-left: 1.3em; }
+      .decide li { margin: 8px 0; }
+    </style>
+  </head>
+  <body>
+    <main class="shell-wide">
+      <span class="label">Round 32 · v1 · 2026-11-22</span>
+      <h1 class="page-title">The work, first</h1>
+      <p class="lead" style="max-width: 72ch; margin-top: 10px">
+        An outside audit said someone judging me as an engineer meets my life story before my engineering. Four
+        case studies are written and shown nowhere. This round puts them right after About, names me on the first
+        screen, and lets a visitor reach the résumé and the work from anywhere. Every finding, checked against the
+        code: <a href="../audit.md">audit.md</a>. The site as it is today:
+        <a href="../../.shots/r32-before/index.html">design/.shots/r32-before</a> (local, nine widths, both themes).
+      </p>
+
+      <section>
+        <span class="label">What you chose (2026-11-22)</span>
+        <ul>
+          <li>A <b>Work</b> section right after About: each case study at rest as its problem, one decision and its proof; the whole story on its own page, <code>/work/&lt;id&gt;</code>; the oak's tags that have one link to it. Nav: About · Work · Journey · Diary · Contact.</li>
+          <li>All four written case studies: DoorDash feasibility agent, DoorDash scraper platform, USC research collection, Schaeffler setup sheets.</li>
+          <li>A name line over the unchanged h1.</li>
+          <li>Also: Résumé in the desktop header; the copy cleanup (fun facts, the two "AI-ing"); an optional note on the postcard; Safari and Firefox test runs (no board needed).</li>
+        </ul>
+      </section>
+
+      <section>
+        <span class="label">1 · The Work section</span>
+        <p style="max-width: 74ch">Board: <a href="boards/work.html">boards/work.html</a> (resize it; <code>?theme=night</code>). Two directions for the object. <b>A, the pass</b>: order tickets on a kitchen rail, from my restaurant years and the system's own name; outdoors it needs a stall's plank on two posts to hang from. <b>B, the bench</b>: graph-paper computation sheets, clipped, lying on the ground like the postcard; wider, easier to read, and precise beside the organic oak that follows. I recommend <b>B</b>.</p>
+        <div class="pair">
+          <img class="preview" src="previews/work-1440.png" alt="The Work section board at 1440: the heading 'What I built, and how.', then direction A, four order tickets hanging from a rail, then direction B, four graph-paper sheets clipped two by two." />
+          <img class="preview" src="previews/work-390.png" alt="The same board at 390: tickets and sheets each stacked in one column." />
+        </div>
+      </section>
+
+      <section>
+        <span class="label">2 · A case study, whole: /work/&lt;id&gt;</span>
+        <p style="max-width: 74ch">Board: <a href="boards/work-page.html">boards/work-page.html</a>. The feasibility agent's page in full (its before/after workflow drawn from the content), and the scraper's proof, where five figures sit in a ledger and the runtime is drawn to scale from the Diary's own numbers.</p>
+        <div class="pair">
+          <img class="preview" src="previews/work-page-1440.png" alt="The case-study page at 1440: a long paper sheet with a title block, the title, the lead, the facts in a side column, the problem, constraints, decisions, paths tried, the built workflow before and after, the proof ledger, what I learned and the next question; then the scraper's five-figure ledger." />
+          <img class="preview" src="previews/work-page-390.png" alt="The case-study page at 390, one column." />
+        </div>
+      </section>
+
+      <section>
+        <span class="label">3 · The first screen and the header</span>
+        <p style="max-width: 74ch">Board: <a href="boards/hero.html">boards/hero.html</a>. The first screen has no room to add a line: the action ends 16px above the fold at 1024×768, 26px at 1366×768, 22px at 844×390, and Moon off duty has 21px at 1440×900 (each one an e2e test). So from 1024 the hint moves up into the sky above the line it describes, and my name takes its place over the h1. Below 1024 the name line uses the space under the header. The header gains Work and a taped Résumé slip; the phone menu is recomposed so five stops fit at 320×568.</p>
+        <img class="preview" src="previews/hero-1440.png" alt="The hero board: frames at 1440×900, 1024×768, 844×390, 390×844 and the phone menu at 320×568, each with the fold drawn and the name line over the h1." />
+      </section>
+
+      <section>
+        <span class="label">4 · The postcard's note</span>
+        <p style="max-width: 74ch">Board: <a href="boards/contact.html">boards/contact.html</a>. Three ruled lines under the email-or-phone pair, above the button. The address side is too narrow from 1280 to split into message and address, so the note sits on lines like a postcard's back. It goes to my inbox only; the thank-you never repeats it.</p>
+        <div class="pair">
+          <img class="preview" src="previews/contact-1440.png" alt="The postcard's address side at 1440 with a new 'A note, if you like' field of three ruled lines under the email and phone pair." />
+          <img class="preview" src="previews/contact-390.png" alt="The same at 390, stacked." />
+        </div>
+      </section>
+
+      <section>
+        <span class="label">5 · Words to approve</span>
+        <p style="max-width: 74ch">Every new or changed line, and the fun-fact cuts. The case studies' own sentences are unchanged; these are the only new words.</p>
+        <table>
+          <thead><tr><th>Where</th><th>Draft</th><th>From</th></tr></thead>
+          <tbody>
+            <tr><td>Work, heading</td><td class="draft">What I built, and how.</td><td>Or: "Four problems, worked through."</td></tr>
+            <tr><td>Work, lead</td><td class="draft">The four I can say the most about: the problem, my call, and the number that proved it.</td><td></td></tr>
+            <tr><td>Card labels</td><td class="draft">The problem · My call · The proof · Read the whole story →</td><td></td></tr>
+            <tr><td>Feasibility agent, problem</td><td class="draft">Knowing whether a retailer's catalog could support an integration took days, by hand.</td><td><code>problem</code>; the metric's "days of manual investigation"</td></tr>
+            <tr><td>Feasibility agent, my call</td><td class="draft">Run independent strategies in parallel and cross-check them, instead of one pipeline.</td><td><code>decisions[0]</code>, <code>failureLesson</code></td></tr>
+            <tr><td>Scraper platform, problem</td><td class="draft">Every scraper was a one-off, so more retailers meant more bespoke things to keep alive.</td><td><code>problem</code></td></tr>
+            <tr><td>Scraper platform, my call</td><td class="draft">Standardise the workflow and validation first; rebuild the worst scraper against it as proof.</td><td><code>decisions[0]</code>, <code>decisions[2]</code></td></tr>
+            <tr><td>USC research, problem</td><td class="draft">Millions of records over months, unattended, from sites that push back on automation.</td><td><code>problem</code></td></tr>
+            <tr><td>USC research, my call</td><td class="draft">Do the expensive work inside the page, and walk the network breadth-first.</td><td><code>decisions[1]</code>, <code>decisions[2]</code></td></tr>
+            <tr><td>Schaeffler, problem</td><td class="draft">Setup sheets were paper: no versions, no access control, each one rewritten from scratch.</td><td><code>problem</code></td></tr>
+            <tr><td>Schaeffler, my call</td><td class="draft">Build the structure paper lacked; drop into custom Java where low-code was the bottleneck.</td><td><code>decisions[0]</code>, <code>decisions[1]</code></td></tr>
+            <tr><td>Each card's proof</td><td class="draft">The oak's own tag for the project (2 → 25, 17h → 3m, 3M+, 96%)</td><td><code>highlights</code>, which gain a <code>projectId</code>; no new figures</td></tr>
+            <tr><td>Feasibility agent, tagline (the page's description, ≤ 160)</td><td class="draft">A multi-strategy agent workflow that tells whether a retailer's public catalog can support an integration in under an hour, not days.</td><td>133 characters; today's is 167, over the search snippet's cut</td></tr>
+            <tr><td>Case-study page, section labels</td><td class="draft">The problem · The assumption I broke · What made it hard · My calls · What I tried first · What failed · The lesson · What I built · The proof · What I learned · What I'd ask next · ← The four case studies · Sheet 1 of 4</td><td>The type's own arc</td></tr>
+            <tr><td>Name line</td><td class="draft">Thien Le · Software engineer · data pipelines and AI agent workflows</td><td>Round 31 README, shortened</td></tr>
+            <tr><td>The cats at the Work stop</td><td class="draft">Tabby: "Mrrrow!" / "Problems he solved. Ooh!" · Grey: "Mrp." / "4 case studies. I read one."</td><td>The count is computed</td></tr>
+            <tr><td>Menu, Work's fact</td><td class="draft">4 case studies</td><td>Computed</td></tr>
+            <tr><td>Postcard, the note</td><td class="draft">Label "A note, if you like" · under it "A line or two is plenty." · error "Keep the note under 1,000 characters."</td><td></td></tr>
+            <tr><td>Receipt, TradeCorps status</td><td class="draft">AI-ing → testing</td><td>Say what's true; the line "AI trading agents" stays</td></tr>
+            <tr><td>Receipt, 3D printing status</td><td class="draft">AI-ing → prototyping</td><td>Say what's true; the line "AI print system" stays</td></tr>
+          </tbody>
+        </table>
+
+        <p style="margin-top: 28px; max-width: 74ch"><b>Fun facts.</b> Sixteen today. Keep what is personal, funny or surprising; cut what is a metric, a restated fact or trivia. Cut ones leave the page with no sticky note.</p>
+        <table>
+          <thead><tr><th>Entry</th><th>Fun fact</th><th>Draft</th></tr></thead>
+          <tbody>
+            <tr><td>DoorDash</td><td>Calling the API instead of crawling the pages found data the crawl never reached.</td><td class="verdict">Keep</td></tr>
+            <tr><td>Wordification</td><td>ElevenLabs says each word, Google's speech recognition listens back, and a miss gets regenerated.</td><td class="verdict">Keep</td></tr>
+            <tr><td>Schaeffler</td><td>I fuzzy-matched 1M+ legacy records with the Damerau–Levenshtein algorithm, a name with two surnames in it.</td><td class="verdict">Keep</td></tr>
+            <tr><td>USC research</td><td class="cut">The scrapers mimicked human interaction patterns to avoid detection, and ran unattended for months.</td><td class="verdict">Cut · reads as evading defences</td></tr>
+            <tr><td>USC TA</td><td>Explaining a data structure to someone who isn't a CS major is the fastest way to find out whether I understand it.</td><td class="verdict">Keep</td></tr>
+            <tr><td>USC degree</td><td>The cybersecurity minor changed how I read systems: I started looking for what a system assumes about the people using it.</td><td class="verdict">Keep</td></tr>
+            <tr><td>CockyHacks</td><td class="cut">MentorHub was built during the hackathon itself, by a team of three that I led.</td><td class="verdict">Cut · restates the page</td></tr>
+            <tr><td>Code to Give</td><td class="cut">At the Alpharetta hackathon in 2023, my team was Atlanta Community Food Bank Team 4.</td><td class="verdict">Cut · trivia</td></tr>
+            <tr><td>LLM classifier</td><td class="cut">A DistilBERT fine-tuned on a 50K IMDB review dataset reached 92% accuracy.</td><td class="verdict">Cut · a metric</td></tr>
+            <tr><td>ACM webmaster</td><td>ACM@USC, the chapter whose website I looked after, also ran the CockyHacks where MentorHub won Best Design.</td><td class="verdict">Keep</td></tr>
+            <tr><td>Eastside High</td><td>I landed in December 2018, at fifteen, and was in an American classroom three weeks later.</td><td class="verdict">Keep</td></tr>
+            <tr><td>Fu of Kyoto</td><td>I worked both sides of the family restaurant: the line, and the floor.</td><td class="verdict">Keep</td></tr>
+            <tr><td>On my own</td><td>It never stopped. I still do some of it.</td><td class="verdict">Keep</td></tr>
+            <tr><td>Chemical engineering</td><td>No chemical equation seemed more interesting than a linear equation.</td><td class="verdict">Keep</td></tr>
+            <tr><td>Switch to CS</td><td>My friends told me to try computer science, and the recommendation was worth more than the plan.</td><td class="verdict">Keep</td></tr>
+            <tr><td>Honors TA</td><td class="cut">Teaching people who did not choose this subject shows me which parts I only think I understand.</td><td class="verdict">Cut · repeats the USC TA line</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="decide">
+        <span class="label">To decide</span>
+        <ol>
+          <li><b>A or B</b> for the Work section's object (I recommend B, the bench).</li>
+          <li><b>The words above</b>: as drafted, or edited. The two receipt statuses need what is actually true.</li>
+          <li><b>The first screen</b>: the hint moving above the line from 1024, so the name line fits without pushing the action off the screen.</li>
+        </ol>
+        <p style="margin-top: 10px; max-width: 74ch">Left alone, unless you say otherwise: the cats, "Practice makes AI.", a Lab section and photographs (no facts or pictures yet), rewrites of globals.css or the companion, CI. Not mine to answer: whether the DoorDash title should name a vendor (the audit asks; only you know).</p>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { oncePerEngine } from "./once";
 
 /**
  * SPEC §3 (responsive contract): zero page-level horizontal overflow at
@@ -126,7 +127,7 @@ test("stays free of horizontal overflow at simulated 200% zoom", async ({ page }
 // window. Pinned widths, so it runs once.
 for (const width of [320, 360, 390, 414, 600, 640, 768, 1023]) {
   test(`the hero's yard adds no horizontal overflow at ${width}`, async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+    test.skip(!oncePerEngine(testInfo), "pins its own viewports; run once");
     await page.setViewportSize({ width, height: 900 });
     await page.reload();
     await page.waitForLoadState("networkidle");
@@ -142,7 +143,7 @@ for (const width of [320, 360, 390, 414, 600, 640, 768, 1023]) {
 // control must be the topmost thing 21px above and below its centre.
 for (const width of [320, 390, 414, 768]) {
   test(`the header logo, the Record's filters and the card's links answer a 44px touch at ${width}`, async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+    test.skip(!oncePerEngine(testInfo), "pins its own viewports; run once");
     await page.setViewportSize({ width, height: 900 });
     await page.reload();
     await page.waitForLoadState("networkidle");
@@ -186,7 +187,7 @@ for (const width of [320, 390, 414, 768]) {
 // page's overflow clip hid it. Their papers stay inside the window.
 for (const width of [320, 360, 390, 414, 768]) {
   test(`the business card and the postcard sit inside the window at ${width}`, async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+    test.skip(!oncePerEngine(testInfo), "pins its own viewports; run once");
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.reload();

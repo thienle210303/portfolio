@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="390,1440" />
+    <title>Contact: the postcard takes an optional note</title>
+    <link rel="stylesheet" href="board.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 32 v1. Thien's answer (2026-11-22): an optional message on the
+       * postcard. It reverses CLAUDE.md's "name plus an email or phone, no
+       * message"; everything else about the lead stays: Resend only, the
+       * email-or-phone pair as one requirement, the first-person failure
+       * lines, the static thank-you that never repeats what was typed.
+       *
+       * Where it goes: on a real postcard the message is written on the back,
+       * on lines. The address side here is ~360px wide from 1280, too narrow to
+       * split into message | address, so the note is ruled lines under the
+       * email-or-phone pair, above the button. The side grows ~112px; the
+       * card and the Ask move down with it.
+       *
+       * Unchanged and drawn as boxes: the stamp and postmark, the picture
+       * side, my business card, the Ask notepad.
+       */
+      .desk { display: grid; grid-template-columns: 380px 360px 1fr; gap: 0; align-items: start; margin-top: 28px; }
+      .side { padding: 22px 26px 28px; }
+      .side h3 { font: italic 400 var(--step-1) / 1.3 var(--font-serif); margin-top: 14px; }
+      .side .note { font-size: var(--step--1); color: var(--fg-muted); margin-top: 4px; }
+      .lbl { display: block; font: 400 var(--step--2) / 1.2 var(--font-mono); letter-spacing: 0.04em; color: var(--fg-muted); margin-top: 16px; }
+      .line { display: block; height: 34px; border-bottom: 1.5px solid var(--fg); }
+      .pair { position: relative; padding-left: 14px; margin-top: 4px; }
+      .pair::before { content: ""; position: absolute; left: 0; top: 18px; bottom: 6px; width: 7px; border: 1.5px solid var(--fg-muted); border-right: 0; }
+      .pair .pairnote { font: italic 400 var(--step--1) / 1.3 var(--font-serif); color: var(--fg-muted); margin-top: 8px; }
+      .msg { position: relative; margin-top: 18px; outline: 2px solid color-mix(in srgb, var(--color-river) 55%, transparent); outline-offset: 6px; }
+      .msg .hint { font: italic 400 var(--step--1) / 1.3 var(--font-serif); color: var(--fg-muted); margin-top: 6px; }
+      .send { margin-top: 22px; display: grid; gap: 8px; justify-items: start; }
+      .send .btn { gap: 14px; }
+      .send p { font-size: var(--step--1); color: var(--fg-muted); max-width: 30ch; }
+      .stack { display: none; }
+      @media (width < 64rem) {
+        .desk { display: none; }
+        .stack { display: block; margin-top: 24px; }
+      }
+      .notes { max-width: 35rem; margin: 56px 0 0; display: grid; gap: 10px; }
+      .notes h2 { font-size: var(--step-0); margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <section class="section">
+      <div class="shell">
+        <p class="label">Round 32 · v1 · Contact: the postcard takes an optional note</p>
+        <p class="aside" style="margin-top: 14px">Xin chào,</p>
+        <h2 class="display" style="margin-top: 2px">say hi.</h2>
+        <p class="aside" style="margin-top: 8px">One postcard, two lines, and the next move is mine.</p>
+
+        <!-- ===================== DESKTOP DESK, 1440 ===================== -->
+        <div class="desk">
+          <div class="paper side" style="--tilt: -0.6deg; position: relative">
+            <div class="art" style="height: 86px; width: 190px; margin-left: auto">stamp and postmark, as built</div>
+            <h3>Leave a way to reach you.</h3>
+            <p class="note">No message needed. I'll write first.</p>
+            <span class="lbl">Your name *</span><span class="line"></span>
+            <div class="pair">
+              <span class="lbl">Email</span><span class="line"></span>
+              <span class="lbl">or phone</span><span class="line"></span>
+              <p class="pairnote">* One is enough, both is fine.</p>
+            </div>
+            <div class="msg">
+              <span class="pin" style="left: -40px; top: 0">1</span>
+              <span class="lbl" style="margin-top: 0">A note, if you like</span>
+              <span class="line"></span><span class="line"></span><span class="line"></span>
+              <p class="hint">A line or two is plenty.</p>
+            </div>
+            <div class="send">
+              <span class="btn">Send the postcard <span aria-hidden="true">✉</span></span>
+              <p>Goes straight to my inbox.</p>
+            </div>
+          </div>
+          <div class="art" style="height: 560px; margin-top: 12px">the picture side: "Greetings from Taylors, SC", as built</div>
+          <div class="art" style="height: 400px; margin: 30px 0 0 -24px">my business card, clipped over the corner, as built</div>
+          <div class="art dark" style="grid-column: 1 / -1; height: 140px; margin-top: 28px">the Ask notepad, lying across the foot of both, as built (112px lower)</div>
+        </div>
+
+        <!-- ===================== PHONE STACK, 390 ===================== -->
+        <div class="stack">
+          <div class="paper side" style="position: relative">
+            <div class="art" style="height: 70px; width: 160px; margin-left: auto">stamp, postmark</div>
+            <h3>Leave a way to reach you.</h3>
+            <p class="note">No message needed. I'll write first.</p>
+            <span class="lbl">Your name *</span><span class="line"></span>
+            <div class="pair">
+              <span class="lbl">Email</span><span class="line"></span>
+              <span class="lbl">or phone</span><span class="line"></span>
+              <p class="pairnote">* One is enough, both is fine.</p>
+            </div>
+            <div class="msg">
+              <span class="lbl" style="margin-top: 0">A note, if you like</span>
+              <span class="line"></span><span class="line"></span><span class="line"></span>
+              <p class="hint">A line or two is plenty.</p>
+            </div>
+            <div class="send">
+              <span class="btn">Send the postcard <span aria-hidden="true">✉</span></span>
+              <p>Goes straight to my inbox.</p>
+            </div>
+          </div>
+          <div class="art" style="height: 150px">the picture side, a band under the form, as built</div>
+          <div class="art" style="height: 260px; margin-top: 24px">my business card, as built</div>
+        </div>
+
+        <div class="notes">
+          <h2>What the pin says</h2>
+          <p><b>1.</b> The note: a <code>&lt;textarea&gt;</code> drawn as three ruled lines (it grows if you write more), labelled "A note, if you like", with "A line or two is plenty." under it. Optional, so no <code>*</code>; up to 1,000 characters, and past that one error in my voice: "Keep the note under 1,000 characters." New lines are fine; control characters are not (checked again on the server).</p>
+          <p>It reaches my inbox inside the lead email, as plain text, below the name and the way back. The thank-you a visitor gets stays word for word what it is: it never repeats the note, the name, or anything typed, so the form still cannot be used to send a stranger text of the sender's choosing.</p>
+          <p>The lines above stay true ("No message needed." — it isn't; "One postcard, two lines" — the two are still all it takes), so nothing else on Contact changes. CLAUDE.md's non-negotiable becomes "name plus an email or phone, and an optional note".</p>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

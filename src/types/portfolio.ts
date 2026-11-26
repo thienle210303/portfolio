@@ -47,6 +47,9 @@ export interface Profile {
   readonly monogram: string;
   /** e.g. "Software Engineer" — the professional title, not a slogan. */
   readonly title: string;
+  /** What I work on, a few words: the hero's name line, after my name and
+   *  title (round 32). */
+  readonly specialty: string;
   /** The single positioning sentence the whole site hangs from. Rendered as
    *  the lead of About in the hero's identity column (`HeroIdentity.tsx`),
    *  and used as the page's meta description and on the social card. */
@@ -201,6 +204,62 @@ export interface ProjectLink {
 }
 
 /**
+ * A share of a whole, drawn as a notch in a bar (round 32): 3.9% of runs
+ * failed, 99.9% succeeded. `before` is left out where there was none.
+ */
+export interface ShareFigure {
+  readonly kind: "share";
+  readonly caption: string;
+  readonly before?: { readonly label: string; readonly percent: number };
+  readonly after: { readonly label: string; readonly percent: number };
+}
+
+/** A case study's drawings: the Diary's own kinds, and a share. */
+export type ShowFigure = DiaryFigure | ShareFigure;
+
+/**
+ * The diagram that opens a case study's card and page (round 32), drawn by
+ * `src/sections/Work/Exhibit.tsx` from these few words: four strategies
+ * running at once into a verdict, a network walked ring by ring, a stack of
+ * paper turned into versions. Illustration, not data: it holds no figure.
+ */
+export type ExhibitDrawing =
+  | {
+      readonly kind: "agents";
+      /** The old way, under the days it took. */
+      readonly before: string;
+      readonly lanes: readonly string[];
+      readonly verdict: string;
+    }
+  | { readonly kind: "rings" }
+  | { readonly kind: "paper"; readonly versions: readonly string[] };
+
+/**
+ * How a case study is shown, not told (round 32; Thien: "I want to show case
+ * instead of bunch of text… Nobody is read it"). The Work section's card is
+ * the drawing, `big` and `caption`; the page adds the rest. Every figure in a
+ * string here, and every number a figure draws, is also in the project's own
+ * `metrics` or `proof`, or its entry's `impact` (`tests/lib/showcase.test.ts`).
+ */
+export interface Showcase {
+  /** The one number, and the word or two beside it. */
+  readonly big: string;
+  readonly small?: string;
+  /** One line, a few words. */
+  readonly caption: string;
+  /** Opens the card and the page; without one, the card opens on its first
+   *  two figures. */
+  readonly drawing?: ExhibitDrawing;
+  /** Arithmetic on the project's own numbers. The card shows the first one
+   *  after a drawing, or the first two. */
+  readonly figures: readonly ShowFigure[];
+  /** Big numbers for the page that have no drawing. */
+  readonly numbers?: readonly { readonly value: string; readonly caption: string }[];
+  /** Three of my calls, a few words each: the page's notes. */
+  readonly calls: readonly [string, string, string];
+}
+
+/**
  * A case study. Every narrative field maps onto the site-wide arc:
  * Problem -> Constraint -> Decision -> Build -> Proof -> Lesson.
  */
@@ -250,6 +309,9 @@ export interface Project {
   readonly recordingDescription?: string;
   /** Set when the deep dive is deliberately not yet written out. */
   readonly inProgressNote?: string;
+  /** Round 32: how the Work section and `/work/<id>` show it. Required on a
+   *  `featured` project (`tests/lib/showcase.test.ts`). */
+  readonly showcase?: Showcase;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -485,6 +547,44 @@ export interface NowCopy {
   /** The receipt's title, and the list's accessible name. */
   readonly label: string;
   readonly items: readonly NowItem[];
+}
+
+/** The Work section's and the case pages' authored lines (round 32). Not
+ *  indexed by the chat. */
+export interface WorkCopy {
+  readonly heading: string;
+  /** Under the heading, in my italic: what pressing a sheet does. */
+  readonly lead: string;
+  /** The link's visible cue on each sheet. */
+  readonly more: string;
+  /** A page's way back to the section. */
+  readonly back: string;
+  /** Over the neighbours' titles at a page's foot. */
+  readonly previous: string;
+  readonly next: string;
+  /** "2 of 4": a sheet's place among the case studies. */
+  readonly sheetOf: string;
+  /** The heading over a page's before/after workflow. */
+  readonly how: string;
+  /** The notes' label: three of my calls. */
+  readonly calls: string;
+  /** The closed disclosure holding the whole write-up. */
+  readonly long: string;
+  /** The write-up's section labels, in the type's own order. */
+  readonly parts: {
+    readonly problem: string;
+    readonly assumption: string;
+    readonly constraints: string;
+    readonly decisions: string;
+    readonly paths: string;
+    readonly failed: string;
+    readonly lesson: string;
+    readonly built: string;
+    readonly proof: string;
+    readonly learned: string;
+    readonly next: string;
+    readonly tools: string;
+  };
 }
 
 /** Bé Nhi's faces (`MiniNhi.tsx`), each from a photo of her. */

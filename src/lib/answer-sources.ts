@@ -41,11 +41,14 @@ export interface IndexableProject {
   readonly pathsExplored: readonly string[];
   readonly technologies: readonly string[];
   readonly metrics: readonly { label: string; before: string; after: string; source: string }[];
+  /** Shown in the Work section (round 32), so its passages cite Work. */
+  readonly featured: boolean;
 }
 
 function toIndexable(project: Project): IndexableProject {
   return {
     id: project.id,
+    featured: project.featured,
     title: project.title,
     organization: careerEntryById(project.careerEntryId)?.organization,
     problem: project.problem,

@@ -5,8 +5,6 @@ import {
   journeyEntryAnchorId,
   LEGACY_SECTION_IDS,
   RECORD_ALIAS_IDS,
-  RECORD_LEGACY_SECTION_IDS,
-  RECORD_WORK_ENTRY_ID,
 } from "../src/sections/CareerTree/anchors";
 import { recordYearId, recordYears } from "../src/lib/record";
 import { ABOUT_LEGACY_SECTION_IDS } from "../src/sections/Hero/anchors";
@@ -87,7 +85,9 @@ const RESTING_TOLERANCE = 2;
 /** Every fragment this spec is responsible for. */
 const ALL_LEGACY_IDS = [
   ...LEGACY_SECTION_IDS,
-  ...RECORD_LEGACY_SECTION_IDS,
+  // `#work` was retired from round 18 to round 31 and is the Work section's
+  // own id again since round 32; it still has to land, once.
+  "work",
   // Round 23: the Record is the Diary (`#diary`), and every year is still a
   // fragment (`#record-2019`: the rings' targets), though 2018 – 2020 is one page.
   ...RECORD_ALIAS_IDS,
@@ -177,7 +177,7 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     expect(projects.length, "no projects, so no case-study fragment was checked").toBeGreaterThan(0);
     expect(ALL_LEGACY_IDS.length).toBe(
       LEGACY_SECTION_IDS.length +
-        RECORD_LEGACY_SECTION_IDS.length +
+        1 +
         RECORD_ALIAS_IDS.length +
         recordYears().length +
         ABOUT_LEGACY_SECTION_IDS.length +
@@ -218,7 +218,7 @@ test.describe("retired URLs, with JavaScript disabled", () => {
   });
 
   // Round 21 phase 5: `#journey`, `#skills` and `#workshop` land on the
-  // Journey; `#work` lands on the Record, where the case studies went.
+  // Journey. Round 32: `#work` is the Work section itself again.
   test("every retired section id lands a scriptless browser on its section, at the header offset", async ({
     page,
   }) => {
@@ -234,7 +234,7 @@ test.describe("retired URLs, with JavaScript disabled", () => {
 
     const landings = [
       ...LEGACY_SECTION_IDS.map((id) => [id, "tree"] as const),
-      ...RECORD_LEGACY_SECTION_IDS.map((id) => [id, "record"] as const),
+      ["work", "work"] as const,
       ...RECORD_ALIAS_IDS.map((id) => [id, "record"] as const),
     ];
     let checked = 0;
@@ -253,15 +253,10 @@ test.describe("retired URLs, with JavaScript disabled", () => {
       expect.soft(top, message).toBeGreaterThanOrEqual(RESTING_TOP - RESTING_TOLERANCE);
       expect.soft(top, message).toBeLessThanOrEqual(RESTING_TOP + RESTING_TOLERANCE);
       // And the section really is what the reader is now looking at.
-      await expect.soft(page.locator(`#${section} #${id}`), `/#${id} is not inside #${section}`).toHaveCount(1);
-      await expect.soft(page.locator(`#${section}`), `/#${id} left #${section} off screen`).toBeInViewport();
-      // `#work` is on DoorDash's page, and the book shows it.
-      if ((RECORD_LEGACY_SECTION_IDS as readonly string[]).includes(id)) {
-        await expect
-          .soft(page.locator(`#${journeyEntryAnchorId(RECORD_WORK_ENTRY_ID)} #${id}`), `/#${id} is not on DoorDash's page`)
-          .toHaveCount(1);
-        expect.soft(await inBook(page, `#${id}`), `/#${id} left the book on another page`).toBe(true);
+      if (id !== section) {
+        await expect.soft(page.locator(`#${section} #${id}`), `/#${id} is not inside #${section}`).toHaveCount(1);
       }
+      await expect.soft(page.locator(`#${section}`), `/#${id} left #${section} off screen`).toBeInViewport();
       expect.soft(await scrollY(page), `/#${id} did not scroll at all`).toBeGreaterThan(0);
       checked += 1;
     }
@@ -360,19 +355,33 @@ test.describe("retired URLs, with JavaScript disabled", () => {
     expect(await inBook(page, `#${fragment}`), `/#${fragment} left the book on another page`).toBe(true);
   });
 
-  test("a case study's fragment lands on its entry's page, where no case study is drawn any more", async ({ page }) => {
-    // The case studies are gone from the page (round 23: "case study make it
-    // bored"), but every `work-<projectId>` is still a real, zero-height
-    // element on the page of the entry it was built in, so an old link lands
-    // the book on that page, with JavaScript off.
-    const study = projects.find((project) => project.id === "dd-scraper-platform");
-    expect(study, "dd-scraper-platform is no longer a project, so this checks nothing").toBeDefined();
-    await page.goto(`/#${caseStudyAnchorId("dd-scraper-platform")}`);
-    const anchor = page.locator(`#${caseStudyAnchorId("dd-scraper-platform")}`);
+  test("a shown case study's fragment lands on its sheet in Work", async ({ page }) => {
+    // Round 32: the four featured case studies are sheets in the Work section,
+    // each `work-<projectId>`, so an old link to one lands on it, with
+    // JavaScript off.
+    const shown = projects.filter((project) => project.featured);
+    expect(shown.length, "no featured projects, so this checks nothing").toBeGreaterThan(0);
+    for (const study of shown) {
+      await page.goto("about:blank");
+      await page.goto(`/#${caseStudyAnchorId(study.id)}`);
+      const anchor = page.locator(`#work li#${caseStudyAnchorId(study.id)}`);
+      await expect(anchor, study.id).toHaveCount(1);
+      expectSettledAtRestingTop(await restingTop(anchor), `${study.id} must settle at the scroll margin`);
+    }
+  });
+
+  test("any other case study's fragment lands on its entry's page in the Diary", async ({ page }) => {
+    // A project the Work section does not show keeps a zero-height anchor on
+    // the Diary page of the entry it was built in (round 23).
+    const study = projects.find((project) => project.id === "automotive-genai");
+    expect(study, "automotive-genai is no longer a project, so this checks nothing").toBeDefined();
+    expect(study!.featured, "automotive-genai is shown now; pick a project that is not").toBe(false);
+    await page.goto(`/#${caseStudyAnchorId(study!.id)}`);
+    const anchor = page.locator(`#${caseStudyAnchorId(study!.id)}`);
     await expect(anchor).toHaveCount(1);
     expectSettledAtRestingTop(await restingTop(anchor), "a case study's anchor must settle at the scroll margin");
-    await expect(page.locator(`#journey-entry-${study!.careerEntryId} #${caseStudyAnchorId("dd-scraper-platform")}`)).toHaveCount(1);
-    expect(await inBook(page, `#${caseStudyAnchorId("dd-scraper-platform")}`), "the book is on another page").toBe(true);
+    await expect(page.locator(`#journey-entry-${study!.careerEntryId} #${caseStudyAnchorId(study!.id)}`)).toHaveCount(1);
+    expect(await inBook(page, `#${caseStudyAnchorId(study!.id)}`), "the book is on another page").toBe(true);
     await expect(page.locator("#record article[id^='work-']")).toHaveCount(0);
   });
 });

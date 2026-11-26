@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { careerEntries, hero, now, profile } from "../src/content/portfolio";
 import { buildFieldTag } from "../src/lib/hero";
+import { oncePerEngine } from "./once";
 
 // Round 21 Phase 3: the clothesline hero. My words, four chapter tags that turn
 // over to my line about each chapter, my field tag, the scenery behind.
@@ -43,7 +44,7 @@ const eastsideHeadline = careerEntries.find((e) => e.id === "eastside-high")!.he
 
 test.describe("hero", () => {
   test.beforeEach(({}, testInfo) => {
-    test.skip(testInfo.project.name !== "chromium-1440", "pins its own viewports; run once");
+    test.skip(!oncePerEngine(testInfo), "pins its own viewports; run once");
   });
 
   for (const viewport of [WIDE, PHONE]) {
@@ -55,7 +56,8 @@ test.describe("hero", () => {
       await expect(page.locator('#about [data-hero-step="intro"]')).toHaveText(
         `${profile.positioning} ${hero.invitation}`,
       );
-      await expect(page.getByRole("link", { name: PRIMARY })).toHaveAttribute("href", "#tree");
+      // Round 32: the case studies, right under About.
+      await expect(page.getByRole("link", { name: PRIMARY })).toHaveAttribute("href", "#work");
       await expect(page.getByRole("link", { name: QUIET })).toHaveAttribute("href", "#contact");
     });
   }
@@ -81,7 +83,8 @@ test.describe("hero", () => {
     await expect(page.locator("#about").getByRole("button", { expanded: true })).toHaveCount(1);
   });
 
-  test("focus follows the turn, by keyboard", async ({ page }) => {
+  test("focus follows the turn, by keyboard", async ({ page, browserName }) => {
+    test.fixme(browserName === "webkit", "WebKit on macOS moves Tab to links only with Option+Tab (Full Keyboard Access off)");
     await open(page);
     const taylors = front(page, "Taylors");
     await taylors.focus();
@@ -96,8 +99,10 @@ test.describe("hero", () => {
   });
 
   test("with a tag open, Tab runs line → Read this part → the next front, and never lands on the open front", async ({
+    browserName,
     page,
   }) => {
+    test.fixme(browserName === "webkit", "WebKit on macOS moves Tab to links only with Option+Tab (Full Keyboard Access off)");
     await open(page);
     await front(page, "Kiên Giang").click();
     await expect.poll(() => focused(page)).toContain(hero.chapterLines.origin);
@@ -136,7 +141,8 @@ test.describe("hero", () => {
     expect(closed.front).toBe(true);
   });
 
-  test("the switch path: Enter on another front opens it and closes the first", async ({ page }) => {
+  test("the switch path: Enter on another front opens it and closes the first", async ({ page, browserName }) => {
+    test.fixme(browserName === "webkit", "WebKit on macOS moves Tab to links only with Option+Tab (Full Keyboard Access off)");
     await open(page);
     const kien = front(page, "Kiên Giang");
     await kien.click();
@@ -212,7 +218,8 @@ test.describe("hero", () => {
   });
 
   for (const theme of ["day", "night"] as const) {
-    test(`focus is visible on every tag, the QR link and both actions, by ${theme}`, async ({ page }) => {
+    test(`focus is visible on every tag, the QR link and both actions, by ${theme}`, async ({ page, browserName }) => {
+      test.fixme(browserName === "webkit", "WebKit on macOS moves Tab to links only with Option+Tab (Full Keyboard Access off)");
       await open(page, theme);
       await page.getByRole("link", { name: PRIMARY }).focus();
       await page.keyboard.press("Shift+Tab");
@@ -590,8 +597,10 @@ test.describe("hero", () => {
       expect(Math.abs(m.field.paper.top - m.hint.top)).toBeLessThanOrEqual(40);
       // The ground: neither side runs into the paddy's band.
       expect(m.actions.bottom).toBeLessThan(m.ground.top + 1);
-      // About one iPad screen, down from ~1700.
-      if (viewport.width === 768) expect(m.about.height).toBeLessThanOrEqual(1080);
+      // About one iPad screen, down from ~1700. Round 32's name line adds
+      // three short lines in this narrow column (1035 → about 1108); the
+      // actions are still on the first screen.
+      if (viewport.width === 768) expect(m.about.height).toBeLessThanOrEqual(1120);
     });
   }
 
@@ -753,7 +762,9 @@ test.describe("hero", () => {
       const m = await page.evaluate(() => {
         const box = (sel: string) => document.querySelector<HTMLElement>(sel)!.getBoundingClientRect();
         const shown = (sel: string) => document.querySelector<HTMLElement>(sel)!.checkVisibility();
-        const words = [...document.querySelectorAll<HTMLElement>("#about [data-hero-identity] :is(h1, p, a, button)")];
+        // Only what is drawn: the name line has a copy per band (round 32),
+        // and a copy that is not shown has an empty box at the page's corner.
+        const words = [...document.querySelectorAll<HTMLElement>("#about [data-hero-identity] :is(h1, p, a, button)")].filter((w) => w.checkVisibility());
         const hint = document.querySelector<HTMLElement>('#about [data-yard="hint"]')!;
         const svg = document.querySelector('#about [data-scenery="hero"] svg')!.getBoundingClientRect();
         return {
@@ -1125,7 +1136,7 @@ test.describe("hero without JavaScript", () => {
   test.use({ javaScriptEnabled: false, colorScheme: "dark" });
 
   test("JS off, dark scheme: the night scene", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "chromium-1440", "run once");
+    test.skip(!oncePerEngine(testInfo), "run once");
     await page.goto("/");
     expect(await sky(page).evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("sky-night.svg");
     await expect(page.locator("#about").getByText(hero.vignette.evening)).toBeVisible();

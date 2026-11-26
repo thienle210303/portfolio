@@ -30,6 +30,7 @@ import type {
   Project,
   SkillCategory,
   SocialLink,
+  WorkCopy,
 } from "@/types/portfolio";
 
 /* -------------------------------------------------------------------------- */
@@ -63,6 +64,10 @@ export const profile = {
   shortName: "Thien",
   monogram: "TL",
   title: "Software Engineer",
+  // Round 32: the hero's name line, after my name and title. The round 31
+  // README's words, shortened ("the data pipelines behind retail partner
+  // onboarding, and the AI agent workflows around them").
+  specialty: "data pipelines and AI agent workflows",
   // Round 18. Every sentence below traces to `origin`, a career entry, or a
   // metric — which the previous drafts of these fields did not. They were
   // written *about* Thien rather than *by* him, and that is what a reader was
@@ -220,6 +225,35 @@ export const journey = {
   },
 } satisfies JourneyCopy;
 
+/** The Work section's and the case pages' words (round 32). Not indexed by the
+ *  chat. The pages' part labels follow the type's own arc. */
+export const work = {
+  heading: "What I built.",
+  lead: "Press one to see how.",
+  more: "See how it works",
+  back: "All four",
+  previous: "Previous",
+  next: "Next",
+  sheetOf: "{n} of {total}",
+  how: "How",
+  calls: "My calls",
+  long: "The long version",
+  parts: {
+    problem: "The problem",
+    assumption: "The assumption I broke",
+    constraints: "What made it hard",
+    decisions: "My calls, in full",
+    paths: "What I tried first",
+    failed: "What failed",
+    lesson: "The lesson",
+    built: "What I built",
+    proof: "The proof",
+    learned: "What I learned",
+    next: "What I'd ask next",
+    tools: "Built with",
+  },
+} satisfies WorkCopy;
+
 /** What I am doing now: the line items on the hero's receipt, "2025 – now"
  *  (round 30; round 27 had them in a crate on the oak, round 26 on a shoot).
  *  A few words each, no sentences (Thien). Indexed by the chat, so "what are
@@ -240,11 +274,11 @@ export const now = {
     {
       id: "tradecorp",
       name: "TradeCorps",
-      status: "AI-ing",
+      status: "testing",
       line: "AI trading agents",
       link: { href: "https://stocent.vercel.app", label: "Stocent" },
     },
-    { id: "3d-printing", name: "3D printing", status: "AI-ing", line: "AI print system" },
+    { id: "3d-printing", name: "3D printing", status: "prototyping", line: "AI print system" },
   ],
 } satisfies NowCopy;
 
@@ -304,12 +338,13 @@ export const socialLinks = [
 // order than the page scrolls through them is actively misleading.
 // Round 21: three sections (a Record section is planned). Worlds is gone, and
 // `#worlds` now lands on About (src/sections/Hero/anchors.ts). Selected Work
-// and Skills went in round 18 — the case studies render inside the Journey's
-// branches. The Journey is the `tree` section,
+// and Skills went in round 18; round 32 brings the case studies back as Work,
+// right after About, drawn rather than written. The Journey is the `tree` section,
 // labelled "Journey" because that is what a hiring manager scans for, and it
 // answers both #tree and #journey (src/sections/CareerTree/CareerTree.tsx).
 export const navItems = [
   { id: "nav-about", sectionId: "about", label: "About" },
+  { id: "nav-work", sectionId: "work", label: "Work" },
   { id: "nav-tree", sectionId: "tree", label: "Journey" },
   { id: "nav-record", sectionId: "record", label: "Diary" },
   { id: "nav-contact", sectionId: "contact", label: "Contact" },
@@ -509,7 +544,6 @@ export const careerEntries = [
       ],
       figure: { kind: "before-after", caption: "Scraper runtime", before: { label: "Element by element", value: 100 }, after: { label: "−95% in one script", value: 5 } },
       // APPROVED 2026-11-01 by Thien
-      funFact: "The scrapers mimicked human interaction patterns to avoid detection, and ran unattended for months.",
     },
   },
   {
@@ -544,7 +578,6 @@ export const careerEntries = [
       ],
       figure: { kind: "count", caption: "Each dot is ten students", total: 200, per: 10 },
       // APPROVED 2026-11-01 by Thien
-      funFact: "Explaining a data structure to someone who isn't a CS major is the fastest way to find out whether I understand it.",
     },
   },
   {
@@ -632,7 +665,6 @@ export const careerEntries = [
       ],
       figure: { kind: "count", caption: "A team of three", total: 3 },
       // APPROVED 2026-11-01 by Thien
-      funFact: "MentorHub was built during the hackathon itself, by a team of three that I led.",
     },
   },
   {
@@ -675,7 +707,6 @@ export const careerEntries = [
       ],
       figure: { kind: "drawing", caption: "2nd place", name: "diary-podium" },
       // APPROVED 2026-11-01 by Thien
-      funFact: "At the Alpharetta hackathon in 2023, my team was Atlanta Community Food Bank Team 4.",
     },
   },
   {
@@ -711,7 +742,6 @@ export const careerEntries = [
     technologies: ["PyTorch", "Transformers", "DistilBERT", "GPT-2", "Fine-tuning"],
     diary: {
       // APPROVED 2026-11-01 by Thien
-      funFact: "A DistilBERT fine-tuned on a 50K IMDB review dataset reached 92% accuracy.",
     },
   },
   {
@@ -964,7 +994,7 @@ export const projects = [
     id: "dd-feasibility-agent",
     title: "The one-hour feasibility question",
     tagline:
-      "A multi-strategy agent workflow that answers whether a retailer's public catalog can support an integration — in under an hour instead of days of manual investigation.",
+      "A multi-strategy agent workflow that tells whether a retailer's public catalog can support an integration in under an hour, not days.",
     careerEntryId: "doordash",
     status: "shipped",
     featured: true,
@@ -1060,6 +1090,22 @@ export const projects = [
     ],
     inProgressNote:
       "This work is internal to DoorDash, so there is no public demo or source link.",
+    // Round 32: shown, not told. Every figure here is in `metrics` or the
+    // DoorDash entry's `impact` (tests/lib/showcase.test.ts).
+    showcase: {
+      big: "< 1 h",
+      small: "from days",
+      caption: "Four strategies at once, cross-checked.",
+      drawing: {
+        kind: "agents",
+        before: "days, by hand",
+        lanes: ["source", "network", "sitemap", "browser"],
+        verdict: "feasible",
+      },
+      figures: [],
+      numbers: [{ value: "2 → 25", caption: "merchants onboarded a month, with the agent workflow" }],
+      calls: ["Four strategies, then cross-check.", "One blind spot looks like no data.", "A human signs off."],
+    },
   },
 
   {
@@ -1148,6 +1194,47 @@ export const projects = [
     technologies: ["Python", "Playwright", "Data validation", "SQL"],
     inProgressNote:
       "Internal DoorDash work — no public demo or source. Figures are drawn from my résumé.",
+    // Round 32: the steps are this project's own `problem`, `decisions` and
+    // `proof`, drawn as a before and an after.
+    workflow: {
+      beforeLabel: "Before — one-off scripts",
+      afterLabel: "After — one standard",
+      before: [
+        { label: "A script per retailer" },
+        { label: "Crawl every page" },
+        { label: "No shared checks" },
+        { label: "17 hours", note: "3.9% failed" },
+      ],
+      after: [
+        { label: "One shared workflow" },
+        { label: "Call the retailer's API" },
+        { label: "Validation, a required stage" },
+        { label: "3 minutes", note: "zero failed" },
+      ],
+    },
+    showcase: {
+      big: "17h → 3m",
+      caption: "One legacy scraper, rebuilt on the API.",
+      figures: [
+        {
+          kind: "before-after",
+          caption: "One legacy scraper's runtime, to scale",
+          before: { label: "HTML crawl · 17 hours", value: 1020 },
+          after: { label: "Direct API · 3 minutes", value: 3 },
+        },
+        { kind: "count", caption: "30+ production scrapers in a single week", total: 30 },
+        { kind: "count", caption: "654 products before · one dot for ten", total: 654, per: 10 },
+        { kind: "count", caption: "1,529 products after", total: 1529, per: 10 },
+        {
+          kind: "share",
+          caption: "Scraper failures",
+          before: { label: "3.9%", percent: 3.9 },
+          after: { label: "Zero", percent: 0 },
+        },
+      ],
+      numbers: [{ value: "$2.8M", caption: "cumulative GOV restored" }],
+      calls: ["Standard first, then speed.", "Validation is a stage, not a habit.", "Rebuild the worst one, as proof."],
+    },
   },
 
   {
@@ -1221,6 +1308,37 @@ export const projects = [
       "What's the right way to detect silent degradation in a long-running collection job, when the output still looks structurally valid?",
 
     technologies: ["Python", "Selenium", "JavaScript", "DOM", "BFS", "Automation"],
+    // Round 32: the steps are this project's own `pathsExplored` and
+    // `decisions`, drawn as a before and an after.
+    workflow: {
+      beforeLabel: "Before — more of everything",
+      afterLabel: "After — less work per item",
+      before: [
+        { label: "More requests in parallel" },
+        { label: "More detection pressure" },
+        { label: "Depth-first", note: "a narrow slice" },
+      ],
+      after: [
+        { label: "Work inside the page" },
+        { label: "Breadth-first over the network" },
+        { label: "3,000,000+ records", note: "99.9% success" },
+      ],
+    },
+    showcase: {
+      big: "3,000,000+",
+      caption: "Breadth-first, unattended, for months.",
+      drawing: { kind: "rings" },
+      figures: [
+        { kind: "share", caption: "Succeeded, across months-long runs", after: { label: "99.9%", percent: 99.9 } },
+        {
+          kind: "before-after",
+          caption: "Runtime, with the work moved into the page",
+          before: { label: "Baseline", value: 100 },
+          after: { label: "95% reduction", value: 5 },
+        },
+      ],
+      calls: ["Efficiency, not aggression.", "Do the work inside the page.", "Breadth before depth."],
+    },
   },
 
   {
@@ -1292,6 +1410,38 @@ export const projects = [
       "How do you keep a low-code application maintainable once a meaningful share of its behaviour lives in custom code? The escape hatch that made it work is also the thing that makes it harder to hand over.",
 
     technologies: ["Mendix", "Java", "External APIs", "Damerau–Levenshtein", "Jira API"],
+    // Round 32: the steps are this project's own `problem`, `pathsExplored`
+    // and `built`, drawn as a before and an after.
+    workflow: {
+      beforeLabel: "Before — paper",
+      afterLabel: "After — the app",
+      before: [
+        { label: "Paper setup sheets" },
+        { label: "No versions, no access control" },
+        { label: "Exact-match legacy data", note: "failed" },
+      ],
+      after: [
+        { label: "Templates, versions, roles" },
+        { label: "Java where low-code stalled" },
+        { label: "1,000,000+ records fuzzy-matched", note: "99.9% accuracy" },
+      ],
+    },
+    showcase: {
+      big: "+96%",
+      small: "throughput",
+      caption: "Low-code, and Java where it stalled.",
+      drawing: { kind: "paper", versions: ["v3", "v2", "v1"] },
+      figures: [
+        {
+          kind: "before-after",
+          caption: "Production throughput",
+          before: { label: "Paper setup sheets", value: 100 },
+          after: { label: "96% increase, with my Java", value: 196 },
+        },
+      ],
+      numbers: [{ value: "99.9%", caption: "of 1,000,000+ legacy records matched" }],
+      calls: ["Build what paper lacked.", "Escape to Java where it stalls.", "Match typos, not just text."],
+    },
   },
 
   {
@@ -1725,6 +1875,7 @@ export const highlights = [
     value: "17h → 3m",
     measure: "3.9% → 0% error",
     label: "Scraper, rebuilt",
+    projectId: "dd-scraper-platform",
   },
   {
     entryId: "doordash",
@@ -1736,8 +1887,8 @@ export const highlights = [
     projectId: "dd-feasibility-agent",
   },
   { entryId: "wordification", name: "Wordification", value: "99.9%", label: "Speech QA accuracy" },
-  { entryId: "schaeffler", name: "Schaeffler", value: "96%", label: "Throughput, custom Java" },
-  { entryId: "usc-scraping", name: "USC research", value: "3M+", label: "Records, unattended" },
+  { entryId: "schaeffler", name: "Schaeffler", value: "96%", label: "Throughput, custom Java", projectId: "schaeffler-setup-sheets" },
+  { entryId: "usc-scraping", name: "USC research", value: "3M+", label: "Records, unattended", projectId: "usc-research-collection" },
   { entryId: "usc-ta", name: "USC teaching", value: "200+", label: "Students helped" },
 ] as const satisfies readonly Highlight[];
 
@@ -1762,7 +1913,9 @@ export const contactCopy = {
   postcard: { greetings: "Greetings from", place: "Taylors, SC" },
   formHeading: "Leave a way to reach you.",
   formNote: "No message needed. I'll write first.",
-  fields: { name: "Your name", email: "Email", phone: "or phone" },
+  fields: { name: "Your name", email: "Email", phone: "or phone", note: "A note, if you like" },
+  /** Under the note's lines (round 32: the note is optional). */
+  noteHint: "A line or two is plenty.",
   /** Under the email and phone lines, said before they try (round 24): the
    *  pair is one requirement, and the page marks it once with a `*`. The
    *  group's name is for a screen reader; the note is what it describes. */

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EMAIL_MAX, LEAD_ERRORS, NAME_MAX, PHONE_PATTERN, SINGLE_LINE, type Lead } from "@/lib/contact";
+import { EMAIL_MAX, LEAD_ERRORS, NAME_MAX, NOTE_MAX, NOTE_TEXT, PHONE_PATTERN, SINGLE_LINE, type Lead } from "@/lib/contact";
 
 /**
  * The server's final check on a lead. Server-only: the form imports the
@@ -17,6 +17,7 @@ export const leadSchema: z.ZodType<Lead & { website?: string }> = z
     name: z.string().trim().min(1, LEAD_ERRORS.nameRequired).max(NAME_MAX, LEAD_ERRORS.nameTooLong).regex(SINGLE_LINE, LEAD_ERRORS.singleLine),
     email: optional(z.string().trim().pipe(z.email(LEAD_ERRORS.email).max(EMAIL_MAX, LEAD_ERRORS.emailTooLong))),
     phone: optional(z.string().trim().regex(PHONE_PATTERN, LEAD_ERRORS.phone)),
+    note: optional(z.string().trim().max(NOTE_MAX, LEAD_ERRORS.noteTooLong).regex(NOTE_TEXT, LEAD_ERRORS.noteText)),
     website: z.string().optional(),
   })
   .superRefine((lead, ctx) => {

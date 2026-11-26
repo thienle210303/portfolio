@@ -22,8 +22,9 @@
  * otherwise.
  *
  * Every id the Journey's tags, the rings, the pressed cards and old bookmarks
- * name is a real element on its page: `journey-entry-<id>`, `work-<projectId>`,
- * `#work` (DoorDash), `#record-<year>` and `#diary` (`src/sections/CareerTree/anchors.ts`).
+ * name is a real element on its page: `journey-entry-<id>`, the `work-<projectId>`
+ * of a project the Work section does not show, `#record-<year>` and `#diary`
+ * (`src/sections/CareerTree/anchors.ts`). `#work` is the Work section again (round 32).
  */
 import type { ReactNode } from "react";
 import { Section } from "@/components/ui/Section";

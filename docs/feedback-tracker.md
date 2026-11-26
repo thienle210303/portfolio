@@ -2467,6 +2467,8 @@ Thien asked for what he is doing now to be on the first page, in place of the ch
 |---|---|---|---|---|---|---|
 | Round 29 after (recorded above) | 212.9 KB | 212.9 KB | 39.2 KB | 115.1 KB | 0.0014 | 1862 |
 | After | 213.4 KB | 213.4 KB | 38.9 KB | 115.1 KB | 0 | 1854 |
+| Round 32, `/` (Work section, name line, the note) | 214.7 KB | 214.7 KB | 41.1 KB | 115.1 KB | 0 | 2113 |
+| Round 32, `/work/dd-scraper-platform` | 191.5 KB | 158.2 KB | 41.1 KB | 62.5 KB | 0 | 546 |
 
 - Production build, `pnpm perf` three times, 0 skipped responses. **JS at load +0.5 KB**: `ExternalLink` and the receipt in `ChapterTags`' client chunk. CSS −0.3 KB (the crate). LCP 1212–1228 ms.
 - `pnpm verify` passes (1,094 unit tests; the one lint warning, in `DiaryBook.tsx`, predates this). Full e2e on the dev server: 1,126 passed, 3 failed; the three (a Journey test that followed the receipt's old "Read this part", and a cat test) pass after the test was pointed at USC's card and on a rerun.

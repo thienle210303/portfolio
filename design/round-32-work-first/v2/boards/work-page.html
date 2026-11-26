@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="board-widths" content="390,1440" />
+    <title>/work/dd-scraper-platform, shown</title>
+    <link rel="stylesheet" href="board.css" />
+    <link rel="stylesheet" href="work.css" />
+    <link rel="stylesheet" href="exhibits.css" />
+    <script src="board.js"></script>
+    <style>
+      /*
+       * Round 32 v2: a case study as a showcase. Each beat is one drawing and
+       * one line, every number from the content file (metrics, the Diary's
+       * figure, the DoorDash entry). The prose of v1 is all still there,
+       * closed, under "The long version".
+       */
+      main { padding: calc(var(--header-h) + 20px) 0 96px; }
+      .story { max-width: 60rem; margin: 0 auto; display: grid; gap: 22px; }
+      .story .sheet { padding: 0; }
+      .beat { padding: 22px 22px 24px; display: grid; gap: 12px; }
+      @media (width >= 40rem) { .beat { padding: 28px 34px 30px; } }
+      .beat .big { font: 700 var(--step-5) / 0.95 var(--font-mono); color: var(--accent); letter-spacing: -0.04em; }
+      .beat .big small { font-size: 0.4em; color: var(--fg-muted); letter-spacing: 0; }
+      .beat .cap { font: 400 var(--step-0) / 1.4 var(--font-mono); color: var(--fg-muted); }
+      .beat h1 { font: 700 var(--step-4) / 1.05 var(--font-display); letter-spacing: var(--tracking-display); }
+      .two { display: grid; gap: 18px; }
+      @media (width >= 40rem) { .two { grid-template-columns: 1fr 1fr; gap: 28px; } }
+      .two .k { display: block; margin-bottom: 8px; }
+      .rate { position: relative; height: 18px; border: 1.5px solid var(--fg-muted); border-radius: 1px; }
+      .rate i { position: absolute; inset: 0 auto 0 0; width: 3.9%; background: repeating-linear-gradient(-45deg, var(--fg-muted) 0 2px, transparent 2px 5px); }
+      .chain { display: grid; gap: 10px; }
+      .chain ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; font: 400 var(--step--1) / 1.3 var(--font-mono); }
+      .chain li { padding: 7px 9px; border: 1.5px solid var(--rule-color); border-radius: 2px; background: var(--surface); }
+      .chain li + li::before { content: "→ "; color: var(--fg-muted); }
+      .chain li + li { border: 0; padding-left: 0; background: none; }
+      .chain li + li span { display: inline-block; padding: 7px 9px; border: 1.5px solid var(--rule-color); border-radius: 2px; background: var(--surface); }
+      .chain .after li, .chain .after li + li span { border-color: color-mix(in srgb, var(--accent) 55%, var(--rule-color)); }
+      .chain .after li:last-child span { color: var(--accent); font-weight: 700; }
+      .chain .before li:last-child span { font-weight: 700; }
+      .notes3 { display: flex; flex-wrap: wrap; gap: 14px; }
+      .notes3 span { background: color-mix(in srgb, var(--color-gold) 30%, var(--surface)); color: var(--color-ink); padding: 12px 14px; font: 600 var(--step-0) / 1.3 var(--font-sans); rotate: var(--r); box-shadow: 0 2px 3px -1px rgb(30 40 35 / 0.25); max-width: 15rem; }
+      details.long { padding: 0 22px; }
+      details.long summary { min-height: 52px; display: flex; align-items: center; gap: 10px; font: 600 var(--step-0) / 1 var(--font-sans); cursor: pointer; list-style: none; }
+      details.long summary::after { content: "+"; font: 700 var(--step-1) / 1 var(--font-mono); color: var(--fg-muted); }
+      @media (width >= 40rem) { details.long { padding: 0 34px; } }
+      .foot2 { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 0 4px; }
+      .foot2 a { min-height: 44px; display: inline-flex; align-items: center; color: var(--fg); font-weight: 600; }
+      .hdr .on { text-decoration: underline 2.5px; text-underline-offset: 6px; }
+      .replay { font: 600 var(--step--1) / 1 var(--font-sans); min-height: 44px; padding: 0 14px; border: 1.5px solid var(--fg); background: none; color: var(--fg); border-radius: 2px; cursor: pointer; justify-self: start; }
+    </style>
+  </head>
+  <body>
+    <header class="hdr">
+      <span>TL</span>
+      <nav class="nav"><span class="wide">About</span><span class="wide on">Work</span><span class="wide">Journey</span><span class="wide">Diary</span><span class="wide">Contact</span><span class="narrow">Menu</span><span>☼</span></nav>
+      <span class="stamp">Let's talk</span>
+    </header>
+
+    <main class="shell">
+      <div class="story">
+        <a class="back" href="#" style="display: inline-flex; min-height: 44px; align-items: center; color: var(--fg); font-weight: 600">← All four</a>
+
+        <!-- 1. The headline, raced -->
+        <article class="sheet" data-paper>
+          <div class="block"><div><span class="k">DoorDash · 2025</span></div><div><span class="k">2 of 4</span></div></div>
+          <div class="beat">
+            <h1>Thirty scrapers in a week</h1>
+            <p class="big">17h → 3m</p>
+            <div class="draw race" aria-hidden="true" style="font-size: 13px">
+              <div class="lane"><span>HTML crawl</span><span class="track"><span class="bar" style="width: 100%"></span></span><span class="t">17 h</span></div>
+              <div class="lane"><span>direct API</span><span class="track"><span class="bar after"></span></span><span class="t after">3 min</span></div>
+            </div>
+            <p class="cap">One legacy scraper, rebuilt on the retailer's own API. To scale.</p>
+            <button class="replay" type="button" data-replay>Race them again</button>
+          </div>
+        </article>
+
+        <!-- 2. Coverage and failures -->
+        <article class="sheet" data-paper style="--tilt: 0.3deg">
+          <div class="beat">
+            <div class="two">
+              <div>
+                <span class="k label">Before · 654 products</span>
+                <div class="dots" data-dots="65" aria-hidden="true"></div>
+              </div>
+              <div>
+                <span class="k label">After · 1,529 products</span>
+                <div class="dots after" data-dots="153" aria-hidden="true"></div>
+              </div>
+            </div>
+            <p class="cap">One dot, ten products. The API found what the crawl never reached.</p>
+            <div class="two" style="margin-top: 10px">
+              <div><span class="k label">Failures before · 3.9%</span><div class="rate" aria-hidden="true"><i></i></div></div>
+              <div><span class="k label">After · zero</span><div class="rate" aria-hidden="true" style="border-color: var(--accent)"></div></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- 3. The week, and the money -->
+        <div class="two">
+          <article class="sheet" data-paper style="--tilt: -0.4deg">
+            <div class="beat">
+              <p class="big" style="font-size: var(--step-4)">30+</p>
+              <div class="draw tally" aria-hidden="true">
+                <svg style="--i: 0" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+                <svg style="--i: 1" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+                <svg style="--i: 2" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+                <svg style="--i: 3" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+                <svg style="--i: 4" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+                <svg style="--i: 5" viewBox="0 0 34 26"><path d="M5 3v20M11 3v20M17 3v20M23 3v20M2 20L30 6" /></svg>
+              </div>
+              <p class="cap">Production scrapers, one week, once the standard was in place.</p>
+            </div>
+          </article>
+          <article class="sheet" data-paper style="--tilt: 0.5deg">
+            <div class="beat">
+              <p class="big" style="font-size: var(--step-4)">$2.8M</p>
+              <p class="cap">Cumulative GOV restored: an eight-stage SKU process, in one run.</p>
+            </div>
+          </article>
+        </div>
+
+        <!-- 4. How: the pipeline, before and after -->
+        <article class="sheet" data-paper style="--tilt: -0.2deg">
+          <div class="beat chain">
+            <span class="k label">How</span>
+            <ol class="before"><li>A script per retailer</li><li><span>Crawl every page</span></li><li><span>No shared checks</span></li><li><span>17 h · 3.9% fail</span></li></ol>
+            <ol class="after"><li>One shared workflow</li><li><span>Call the API</span></li><li><span>Validation, a stage</span></li><li><span>3 min · zero fail</span></li></ol>
+          </div>
+        </article>
+
+        <!-- 5. My calls, as notes -->
+        <div class="notes3" aria-label="My calls">
+          <span style="--r: -2deg">Standard first, then speed.</span>
+          <span style="--r: 1.5deg">Validation is a stage, not a habit.</span>
+          <span style="--r: -1deg">Rebuild the worst one, as proof.</span>
+        </div>
+
+        <!-- 6. The words, closed -->
+        <article class="sheet" data-paper>
+          <details class="long">
+            <summary>The long version</summary>
+            <p style="padding-bottom: 20px; max-width: 58ch">The problem, the constraints, every decision, the paths I tried, what I learned and what I'd ask next, as written in v1. Closed until you open it.</p>
+          </details>
+        </article>
+
+        <nav class="foot2" aria-label="Case studies">
+          <a href="#">← The one-hour feasibility question</a>
+          <a href="#">Send me a postcard</a>
+          <a href="#">Three million records, unattended →</a>
+        </nav>
+      </div>
+    </main>
+
+    <script>
+      for (const el of document.querySelectorAll("[data-dots]")) {
+        el.innerHTML = "<i></i>".repeat(Number(el.dataset.dots));
+      }
+      document.querySelector("[data-replay]")?.addEventListener("click", () => {
+        for (const a of document.getAnimations()) { a.cancel(); a.play(); }
+      });
+    </script>
+  </body>
+</html>

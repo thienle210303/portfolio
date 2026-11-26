@@ -287,6 +287,10 @@ export function DiaryBook({
     const book = track?.parentElement;
     if (!track || !book || modeRef.current !== "leaf" || flight.current) return;
     settling.current?.();
+    // Collapsing the pages to read their height briefly shortens the document,
+    // and Safari clamps the window's scroll to it then (found when round 32
+    // added WebKit: a cold load of /#ask landed 445px short). Put the reader back where they were.
+    const y = window.scrollY;
     track.style.setProperty("--page-h", "0px");
     const hidden = Array.from(track.querySelectorAll<HTMLElement>(":scope > .diary-slot[hidden]"));
     for (const slot of hidden) slot.removeAttribute("hidden");
@@ -300,6 +304,7 @@ export function DiaryBook({
     track.style.setProperty("--depth", `${depth}px`);
     track.style.setProperty("--room", `${room}px`);
     track.scrollTo?.(0, 0);
+    if (window.scrollY !== y) window.scrollTo({ top: y, behavior: "instant" });
   };
 
   /* ---------------------------------------------------------------- */
