@@ -130,7 +130,9 @@ test.describe("screen recordings", () => {
     test(`pressing play on ${entry.role} requests one mp4 and one poster`, async ({ page }) => {
       const media: string[] = [];
       page.on("request", (request) => {
-        if (new URL(request.url()).pathname.startsWith("/media/")) media.push(new URL(request.url()).pathname);
+        // Each file once: WebKit fetches a video as more than one byte-range request.
+        const path = new URL(request.url()).pathname;
+        if (path.startsWith("/media/") && !media.includes(path)) media.push(path);
       });
 
       // Turn to the page from the contents, as a reader would: below 1280
